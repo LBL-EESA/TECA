@@ -30,6 +30,8 @@ batch script rather than in your shell.
 | :ref:`teca_temporal_reduction`         | Computes reductions (min, max, average,          |
 |                                        | summation) over the time dimension               |
 +----------------------------------------+--------------------------------------------------+
+| :ref:`teca_detect_stitch_nodes`        | TC detection using TempestExtremes               |
++----------------------------------------+--------------------------------------------------+
 | :ref:`teca_tc_detect`                  | TC detection using GFDL algorithm                |
 +----------------------------------------+--------------------------------------------------+
 | :ref:`teca_tc_trajectory`              | Computes TC tracks from a set of candidates      |
@@ -56,6 +58,8 @@ batch script rather than in your shell.
 +----------------------------------------+--------------------------------------------------+
 | :ref:`teca_cf_restripe`                | Convert the internal layout of a dataset on disk |
 |                                        | with optional subsetting and/or regridding.      |
++----------------------------------------+--------------------------------------------------+
+| :ref:`teca_lapse_rate`                 | Calculates the mean lapse rate                   |
 +----------------------------------------+--------------------------------------------------+
 
 Applying the Command Line Applications at Scale
@@ -1557,6 +1561,310 @@ Command Line Arguments
     displays both basic and advanced documentation together
 
 
+.. _teca_detect_stitch_nodes:
+
+teca_detect_stitch_nodes
+------------------------------
+The cyclone detecton algorithm is based on two TempestExtremes codes :cite:`tempestextremes`:
+DetectNodes and StitchNodes.
+
+Inputs
+~~~~~~
+A Cartesian mesh stored in a collection of NetCDF CF2 files. The detector requires on
+the following fields.
+
+1. Sea level pressure
+2. Surface wind x-component
+3. Surface wind y-component
+4. Geopotential height (300 and 500 mB)
+5. Surface geopotential height
+
+Outputs
+~~~~~~~
+1. Cyclone candidate table
+2. Cyclone track table
+
+Command Line Arguments
+~~~~~~~~~~~~~~~~~~~~~~
+
+--input_file INPUT_FILE
+    a teca_multi_cf_reader configuration file identifying the set of NetCDF CF2 files to process.
+    When present data is read using the teca_multi_cf_reader. Use one of either `--input_file` or
+    `--input_regex`.
+
+--input_regex INPUT_REGEX
+    a teca_cf_reader regex identifying the set of NetCDF CF2 files to process. When present data is
+    read using the teca_cf_reader. Use one of either `--input_file` or `--input_regex`.
+
+--candidate_file CANDIDATE_FILE
+    file path to write the storm candidates to. The extension determines the file format. May be one of
+    `.nc`, `.csv`, or `.bin`. (default: candidates.csv)
+
+--track_file TRACK_FILE
+    file path to write the storm tracks to. The extension determines the file format. May be one of
+    `.nc`, `.csv`, or `.bin`. (default: tracks.csv)
+
+--x_axis_variable X_AXIS_VARIABLE
+    name of x coordinate variable (default: lon)
+
+--y_axis_variable Y_AXIS_VARIABLE
+    name of y coordinate variable (default: lat)
+
+--z_axis_variable Z_AXIS_VARIABLE
+    name of z coordinate variable (default: level)
+
+--sea_level_pressure SEA_LEVEL_PRESSURE
+    name of variable with sea level pressure
+
+--surface_wind_u SURFACE_WIND_U
+    name of variable with surface wind x-component
+
+--surface_wind_v SURFACE_WIND_Y
+    name of variable with surface wind y-component
+
+--geopotential_at_surface GEOPOTENTIAL_AT_SURFACE
+    name of variable with geopotential at the surface
+
+--geopotential GEOPOTENTIAL
+    name of variable with geopotential height
+    for thickness calc (300 and 500 mB)
+
+--300mb_height 300_HEIGHT
+    name of variable with 300mb height for thickness calc
+
+--500mb_height 500_HEIGHT
+    name of variable with 500mb height for thickness calc
+
+--in_connect CONNECTIVITY_FILE
+    a connectivity file that describes the unstructured grid.
+    Not supported yet.
+
+--diag_connect true/false
+    When the data is on a structured grid, consider grid cells
+    to be connected in the diagonal (across the vertex).
+    (default: false)
+
+--regional true/false
+    Used to indicate that a given latitude-longitude grid
+    should not be periodic in the longitudinal direction.
+    (default: true)
+
+--out_header true/false
+    If present, output a header at the beginning of the output file
+    indicating the columns of the file.
+    (default: true)
+
+--search_by_min VARIABLE_NAME
+    The input variable to use for initially selecting candidate points (defined as local minima).
+    At least one (and at most one) of --search_by_min or --search_by_max must be specified.
+
+--search_by_max VARIABLE_NAME
+    The input variable to use for initially selecting candidate points (defined as local maxima).
+    At least one (and at most one) of --search_by_min or --search_by_max must be specified.
+
+--search_by_threshold SEARCH_BY_THRESHOLD
+    Threshold for search operation in the form "<op><value>"
+    These arguments are as follows.
+    op is the operator that must be satisfied for threshold (options include >,>=,<,<=,=,!=).
+    value is the value on the right-hand-side of the comparison.
+
+--min_lon MIN_LON
+    The minimum longitude for candidate points. (default: 0.0)
+
+--max_lon MAX_LON
+    The maximum longitude for candidate points.
+    As longitude is a periodic dimension,
+    when --regional is not specified --min_lon may be larger than --max_lon.
+    If --max_lon and --min_lon are equal then these arguments are ignored.
+    (default: 0.0)
+
+--min_lat MIN_LAT
+    The minimum latitude for candidate points. (default: 0.0)
+
+--max_lat MAX_LAT
+    The maximum latitude for candidate points.
+    If --max_lat and --min_lat are equal then these arguments are ignored.
+    (default: 0.0)
+
+--min_abs_lat MIN_ABS_LAT
+    The minimum absolute value of the latitude for candidate points.
+    This argument has no effect if set to zero.
+    (default: 0.0)
+
+--merge_dist MERGE_DIST
+    Minimum allowable distance between two candidates in degrees.
+    Candidate points with a distance (in degrees great-circle-distance)
+    shorter than the specified value are merged.
+    Among two candidates within the merge distance,
+    only the candidate with the lowest value of the --search_by_min field
+    or highest value of the --search_by_max field are retained.
+    (default: 6.0)
+
+--closed_contour_cmd CLOSED_CONTOUR_CMD
+    Eliminate candidates if they do not have a closed contour.
+    The closed contour is determined by breadth first search:
+    if any paths exist from the candidate point
+    (or nearby minima/maxima if minmaxdist is specified)
+    that reach the specified distance before achieving the specified delta
+    then we say no closed contour is present.
+    Closed contour commands are separated by a semicolon ("<cmd1>;<cmd2>;...").
+    Each closed contour command takes the form "var,delta,dist,minmaxdist".
+    These arguments are as follows.
+    var is the name of the variable used for the contour search.
+    dist is the great-circle distance (in degrees) from the pivot
+    within which the closed_contour criteria must be satisfied.
+    delta is the amount by which the field must change from the pivot value.
+    If positive (negative) the field must increase (decrease) by this value along the contour.
+    minmaxdist is the great-circle distance away from the candidate
+    to search for the minima/maxima. If delta is positive (negative),
+    the pivot is a local minimum (maximum).
+    (default: SEA_LEVEL_PRESSURE,200.0,5.5,0;thickness,-6.0,6.5,1.0)
+
+--no_closed_contour_cmd NO_CLOSED_CONTOUR_CMD
+    As --closed_contour_cmd,
+    except it eliminates candidates if a closed contour is present.
+
+--candidate_threshold_cmd CANDIDATE_THRESHOLD_CMD
+    Threshold commands for candidates.
+    Eliminate candidates that do not satisfy a threshold criteria
+    (there must exist a point within a given distance of the candidate
+    that satisfies a given equality or inequality).
+    Search is performed by breadth-first search over the grid.
+    Threshold commands are separated by a semicolon ("<cmd1>;<cmd2>;...").
+    Each threshold command takes the form "var,op,value,dist".
+    These arguments are as follows.
+    var is the name of the variable used for the thresholding.
+    op is the operator that must be satisfied for threshold (options include >,>=,<,<=,=,!=).
+    value is the value on the right-hand-side of the comparison.
+    dist is the great-circle distance away from the candidate
+    to search for a point that satisfies the threshold.
+
+--output_cmd OUTPUT_CMD
+    Include additional columns in the candidates output file.
+    Each output command takes the form "var,op,dist".
+    These arguments are as follows.
+    var is the name of the variable used for output.
+    op is the operator that is applied over all points
+    within the specified distance of the candidate (options include max, min, avg, maxdist, mindist).
+    dist is the great-circle distance away from the candidate wherein the operator is applied.
+    (default: SEA_LEVEL_PRESSURE,min,0;surface_wind_speed,max,2;GEOPOTENTIAL_AT_SURFACE,min,0)
+
+--in_fmt IN_FMT
+    A comma-separated list of names of the auxiliary columns within the candidates output file.
+    (namely, the list must not include the time columns).
+    (default: i,j,lat,lon,SEA_LEVEL_PRESSURE,surface_wind_speed,GEOPOTENTIAL_AT_SURFACE)
+
+--range RANGE
+    The maximum distance between candidates along a path (in great-circle degrees).
+    (default: 8.0)
+
+--min_time MIN_TIME
+    The minimum length of a path either in terms of number of discrete times or as a duration, e.g. "24h".
+    Note that the duration of a path is computed as the difference between the final time and initial time,
+    so a "24h" duration correspond to 5 time steps in 6-hourly data (i.e. 0h,6,12,18,24UTC).
+    (default: 10)
+
+--min_endpoint_distance MIN_ENDPOINT_DIST
+    The minimum great-circle distance between the first candidate on a path and the last candidate (in degrees).
+    (default: 0.0)
+
+--min_path_distance MIN_PATH_DISTANCE
+    The minimum accumulated great-circle distance between nodes in a path (in degrees).
+    (default: 0.0)
+
+--min_path_length MIN_PATH_LENGTH
+    Minimum path length (default: 0.0)
+
+--max_gap MAX_GAP
+    The number of allowed missing points between spatially proximal candidate nodes
+    while still considering them part of the same path.
+    (default: 3)
+
+--track_threshold_cmd TRACK_THRESHOLD_CMD
+    Filter paths based on the number of times where a particular threshold is satisfied.
+    Threshold commands are separated by a semicolon ("<cmd1>;<cmd2>;...").
+    Each threshold command takes the form "col,op,value,count".
+    These arguments are as follows.
+    col is the name of the column to use for thresholding, as specified in --in_fmt.
+    op is the operator that must be satisfied for threshold (options include >,>=,<,<=,=,!=,|>=,|<=).
+    value is the value on the right-hand-side of the comparison.
+    count is either the minimum number of time slices where the threshold must be satisfied
+    or the instruction "all", "first", or "last".
+    Here "all" is used to indicate the threshold must be satisfied at all points along the path,
+    "first" is used to indicate the threshold must be satisfied only at the first point along the path, and
+    "last" is used to indicate the threshold must be satisfied only at the last point along the path.
+    (default: surface_wind_speed,>=,10.0,10;lat,<=,50.0,10;lat,>=,-50.0,10;GEOPOTENTIAL_AT_SURFACE,<=,15.0,10)
+
+--prioritize VARIABLE_NAME
+    Variable to use when prioritizing path
+
+--allow_repeated_times true/false
+    Allow repeated times (default: false)
+
+--cal_type CAL_TYPE
+    Calendar type (default: standard)
+
+--first_step FIRST_STEP
+    first time step to process (default: 0)
+
+--last_step LAST_STEP
+    last time step to process (default: -1)
+
+--n_threads NUMBER_OF_THREADS
+    Sets the thread pool size on each MPI rank. When the default value of -1 is used TECA will
+    coordinate the thread pools across ranks such each thread is bound to a unique physical core.
+    (default: -1)
+
+--help
+    displays documentation for application specific command line options
+
+--advanced_help
+    displays documentation for algorithm specific command line options
+
+--full_help
+    displays both basic and advanced documentation together
+
+--verbose VERBOSE
+    Enable verbose output (default: 0)
+
+Examples
+~~~~~~~~
+
+ERA5 data
+^^^^^^^^^
+
+.. code-block:: bash
+
+    #!/bin/bash
+    #SBATCH -C cpu
+    #SBATCH -q debug
+    #SBATCH -A m1517
+    #SBATCH -N 1
+    #SBATCH -n 64
+    #SBATCH -t 00:30:00
+    #SBATCH -J teca_detect_stitch.out
+    #SBATCH --output=%x-%j.out
+
+    # load the TECA module
+    module use /global/common/software/m1517/teca/perlmutter_cpu/develop/modulefiles
+    module load teca
+
+    srun -n 64 teca_detect_stitch_nodes \
+       --input_file era5_2017.mcf \
+       --sea_level_pressure MSL \
+       --surface_wind_u VAR_10U \
+       --surface_wind_v VAR_10V \
+       --geopotential Z \
+       --geopotential_at_surface ZS \
+       --x_axis_variable longitude \
+       --y_axis_variable latitude \
+       --max_lat 90 \
+       --min_lat -90 \
+       --max_lon 359.75 \
+       --min_lon 0 \
+       --search_by_min MSL
+
+
 .. _teca_tc_detect:
 
 teca_tc_detect
@@ -1595,7 +1903,7 @@ the following fields.
 
 Outputs
 ~~~~~~~
-1. Cyclone andidate table
+1. Cyclone candidate table
 2. Cyclone track table
 
 Command Line Arguments
