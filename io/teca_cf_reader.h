@@ -130,6 +130,13 @@ public:
     TECA_ALGORITHM_PROPERTY(int, periodic_in_z)
     ///@}
 
+    /** @name select_ensemble_member_index
+     * Index of the ensemble member to use (if an ensemble dimension is given)
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, select_ensemble_member_index)
+    ///@}
+
     /** @name x_axis_variable
      * Set the name of the variable to use for the x coordinate axis.
      * An empty string disables this dimension.
@@ -159,6 +166,14 @@ public:
      */
     ///@{
     TECA_ALGORITHM_PROPERTY(std::string, t_axis_variable)
+    ///@}
+
+    /** @name ensemble_dimension_name
+     * Set the name of the dimension that corresponds to ensemble members.
+     * An empty string disables this dimension.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(std::string, ensemble_dimension_name)
     ///@}
 
     /** @name calendar
@@ -268,6 +283,7 @@ private:
     std::string y_axis_variable;
     std::string z_axis_variable;
     std::string t_axis_variable;
+    std::string ensemble_dimension_name;
     std::string calendar;
     std::string t_units;
     std::string filename_time_template;
@@ -275,6 +291,7 @@ private:
     int periodic_in_x;
     int periodic_in_y;
     int periodic_in_z;
+    int select_ensemble_member_index;
     int max_metadata_ranks;
     int clamp_dimensions_of_one;
     int collective_buffer;

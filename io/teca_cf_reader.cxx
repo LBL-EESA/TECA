@@ -112,6 +112,12 @@ void teca_cf_reader::get_properties_description(
             "name of variable that has time axis coordinates (time). Set to an empty"
             " string to enable override methods (--filename_time_template, --t_values)"
             " or to disable time coordinates completely")
+        TECA_POPTS_GET(std::string, prefix, ensemble_dimension_name,
+            "name of dimension that lists ensemble members, if any. Set to an empty"
+            " string to disable checking whether there are any ensemble members. To"
+            " enable support, set this to the name of the dimension listing"
+            " ensemble members, e.g. \"ensemble\". IMPORTANT: Ensemble dimension"
+            " must be first dimension before time and other axes.")
         TECA_POPTS_GET(std::string, prefix, calendar,
             "An optional calendar override. May be one of: standard, Julian,"
             " proplectic_Julian, Gregorian, proplectic_Gregorian, Gregorian_Y0,"
@@ -143,6 +149,10 @@ void teca_cf_reader::get_properties_description(
             "the dataset has a periodic boundary in the y direction")
         TECA_POPTS_GET(int, prefix, periodic_in_z,
             "the dataset has a periodic boundary in the z direction")
+        TECA_POPTS_GET(int, prefix, select_ensemble_member_index,
+            "the index of the ensemble member to read (if"
+            " ensemble_dimension_name is set, otherwise option is ignored)."
+            " Default value is 0, corresponding to the first ensemble member.")
         TECA_POPTS_GET(int, prefix, max_metadata_ranks,
             "set the max number of MPI ranks for reading metadata")
         TECA_POPTS_GET(int, prefix, clamp_dimensions_of_one,
@@ -171,6 +181,7 @@ void teca_cf_reader::set_properties(const std::string &prefix,
     TECA_POPTS_SET(opts, std::string, prefix, y_axis_variable)
     TECA_POPTS_SET(opts, std::string, prefix, z_axis_variable)
     TECA_POPTS_SET(opts, std::string, prefix, t_axis_variable)
+    TECA_POPTS_SET(opts, std::string, prefix, ensemble_dimension_name)
     TECA_POPTS_SET(opts, std::string, prefix, calendar)
     TECA_POPTS_SET(opts, std::string, prefix, t_units)
     TECA_POPTS_SET(opts, std::string, prefix, filename_time_template)
@@ -178,6 +189,7 @@ void teca_cf_reader::set_properties(const std::string &prefix,
     TECA_POPTS_SET(opts, int, prefix, periodic_in_x)
     TECA_POPTS_SET(opts, int, prefix, periodic_in_y)
     TECA_POPTS_SET(opts, int, prefix, periodic_in_z)
+    TECA_POPTS_SET(opts, int, prefix, select_ensemble_member_index)
     TECA_POPTS_SET(opts, int, prefix, max_metadata_ranks)
     TECA_POPTS_SET(opts, int, prefix, clamp_dimensions_of_one)
     TECA_POPTS_SET(opts, int, prefix, collective_buffer)
@@ -232,7 +244,8 @@ void teca_cf_reader::get_variables_in_group(
         if (teca_netcdf_util::read_variable_attributes(fh, group_name, i,
             this->x_axis_variable, this->y_axis_variable,
             this->z_axis_variable, this->t_axis_variable,
-            this->clamp_dimensions_of_one, name, atts))
+            this->ensemble_dimension_name, this->clamp_dimensions_of_one,
+            name, atts))
         {
             this->clear_cached_metadata();
             TECA_FATAL_ERROR(
@@ -1649,17 +1662,21 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
             int parent_id = 0;
             int id = 0;
             int have_mesh_dim[4] = {0};
+            int have_ensemble_dim = 0;
             int mesh_dim_active[4] = {0};
             unsigned int centering = teca_array_attributes::no_centering;
             std::vector<size_t> cf_dims;
+            std::vector<std::string> cf_dim_names;
 
             if (atrs.get(arrays[i], atts)
                 || atts.get("cf_type_code", 0, type)
                 || atts.get("cf_parent_group", 0, parent_group)
                 || atts.get("cf_id", 0, id)
                 || atts.get("cf_dims", cf_dims)
+                || atts.get("cf_dim_names", cf_dim_names)
                 || atts.get("centering", centering)
                 || atts.get("have_mesh_dim", have_mesh_dim, 4)
+                || atts.get("have_ensemble_dim", have_ensemble_dim)
                 || atts.get("mesh_dim_active", mesh_dim_active, 4))
             {
                 TECA_FATAL_ERROR("metadata issue can't read \"" << arrays[i] << "\"")
@@ -1719,6 +1736,21 @@ const_p_teca_dataset teca_cf_reader::execute(unsigned int port,
                 // select the requested time step
                 // subset point centered variables based on the incoming requested
                 // extent.
+
+                // TODO/FIXME: The following assumes that the ensemble dimension
+                // comes first in the data layout when selecting the subset of
+                // a point variable. Since TECA already assumes a layout
+                // of time/z/y/x in the file (see code below that hardcodes
+                // populating starts/stops in the order have_mesh_dim[2], which
+                // cooresponds to t to have_mesh_dim[0], which corresponds to x)
+                // this seems to be a reasonable assumption, but still worth
+                // noting.
+                if (have_ensemble_dim)
+                {
+                    starts.push_back(this->select_ensemble_member_index);
+                    counts.push_back(1);
+                }
+
                 if (have_mesh_dim[3])
                 {
                     starts.push_back(mesh_dim_active[3] ? first_step : 0);

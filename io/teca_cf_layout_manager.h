@@ -51,13 +51,16 @@ public:
      * @param[in] compression_level set greater than 1 to enable compression.
      *            this is incomatible with MPI parallel I/O and cannot be used
      *            in a parallel setting.
+     * @param[in] move_vars_to_root move variable in groups to root of file
+     *            (and do not create groups)
      *
      * @returns zero if successful
      */
     int define(const teca_metadata &md, unsigned long *whole_extent,
         const std::vector<std::string> &point_arrays,
         const std::vector<std::string> &info_arrays,
-        int collective_buffer, int compression_level);
+        int collective_buffer, int compression_level,
+        bool move_vars_to_root);
 
     /// writes the collection of arrays to the NetCDF file in the correct spot.
     int write(long index,
@@ -146,14 +149,15 @@ protected:
 
     struct var_def_t
     {
-        var_def_t() : var_id(0), type_code(0), active_dims{0,0,0,0} {}
+        var_def_t() : parent_id(0), var_id(0), type_code(0), active_dims{0,0,0,0} {}
 
-        var_def_t(int aid, unsigned int atc, const std::array<int,4> &ada) :
-            var_id(aid), type_code(atc), active_dims(ada) {}
+        var_def_t(int pid, int aid, unsigned int atc, const std::array<int,4> &ada) :
+            parent_id(pid), var_id(aid), type_code(atc), active_dims(ada) {}
 
-        var_def_t(int aid, unsigned int atc) :
-            var_id(aid), type_code(atc), active_dims{0,0,0,0} {}
+        var_def_t(int pid, int aid, unsigned int atc) :
+            parent_id(pid), var_id(aid), type_code(atc), active_dims{0,0,0,0} {}
 
+        int parent_id;
         int var_id;
         unsigned int type_code;
         std::array<int,4> active_dims;

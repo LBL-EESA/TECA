@@ -209,7 +209,13 @@ public:
     ///@{
     TECA_ALGORITHM_PROPERTY(int, flush_files)
     ///@}
-;
+
+    /** @name move_variables_to_root
+     * Move variables to root instead of creating groups
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(int, move_variables_to_root)
+    ///@}
 
     /** @name point_array
      * Specify the arrays to write. A data array is only written to disk if
@@ -394,6 +400,7 @@ private:
     int collective_buffer;
     int compression_level;
     int flush_files;
+    int move_variables_to_root;
 
     std::vector<std::string> point_arrays;
     std::vector<std::string> information_arrays;

@@ -50,7 +50,8 @@ teca_cf_writer::teca_cf_writer() :
     first_step(0), last_step(-1), layout(monthly), partitioner(temporal),
     index_executive_compatability(0), steps_per_file(128),
     mode_flags(NC_CLOBBER|NC_NETCDF4), use_unlimited_dim(0),
-    collective_buffer(-1), compression_level(-1), flush_files(0)
+    collective_buffer(-1), compression_level(-1), flush_files(0),
+    move_variables_to_root(0)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -141,6 +142,8 @@ void teca_cf_writer::get_properties_description(
             " does nothing if the value is less than or equal to 0.")
         TECA_POPTS_GET(int, prefix, flush_files,
             "if set files are flushed before they are closed.")
+        TECA_POPTS_GET(int, prefix, move_variables_to_root,
+            "do not create groups; move variables to root instead." )
         TECA_POPTS_MULTI_GET(std::vector<std::string>, prefix, point_arrays,
             "the list of point centered arrays to write")
         TECA_POPTS_MULTI_GET(std::vector<std::string>, prefix, information_arrays,
@@ -179,6 +182,7 @@ void teca_cf_writer::set_properties(
     TECA_POPTS_SET(opts, int, prefix, use_unlimited_dim)
     TECA_POPTS_SET(opts, int, prefix, compression_level)
     TECA_POPTS_SET(opts, int, prefix, flush_files)
+    TECA_POPTS_SET(opts, int, prefix, move_variables_to_root)
     TECA_POPTS_SET(opts, std::vector<std::string>, prefix, point_arrays)
     TECA_POPTS_SET(opts, std::vector<std::string>, prefix, information_arrays)
 }
@@ -613,7 +617,7 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
             // that each time step has the same global view.
             if (layout_mgr->define(md_in, extent, this->point_arrays,
                 this->information_arrays, use_collective_buffer,
-                this->compression_level))
+                this->compression_level, this->move_variables_to_root))
             {
                 TECA_FATAL_ERROR("failed to define file " << file_id)
                 return -1;
