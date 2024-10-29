@@ -36,6 +36,9 @@ if (TECA_HAS_DATA)
 
     configure_file(${TECA_DATA_ROOT}/ERA5_lapse_rate_group_test.mcf.in
          ${CMAKE_CURRENT_BINARY_DIR}/ERA5_lapse_rate_group_test.mcf)
+
+    configure_file(${TECA_DATA_ROOT}/ERA5/ERA5_TC_test.mcf.in
+         ${CMAKE_CURRENT_BINARY_DIR}/ERA5_TC_test.mcf)
 endif()
 
 teca_add_test(test_pipeline_time_average
@@ -1063,4 +1066,16 @@ teca_add_test(test_regional_surface_area
     COMMAND test_regional_surface_area
          512 "${TECA_DATA_ROOT}/vc965bq8111" 17814000.0 3e3
     FEATURES ${TECA_HAS_NETCDF} ${TECA_HAS_SHAPELIB}
+    REQ_TECA_DATA)
+
+teca_add_test(test_mesh_join
+    EXEC_NAME test_mesh_join
+    SOURCES test_mesh_join.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_mesh_join
+        -i "${TECA_DATA_ROOT}/HighResMIP/TC_test/PSL/PSL.*\.nc"
+        "${TECA_DATA_ROOT}/HighResMIP/TC_test/U850/U850.*\.nc"
+        "${TECA_DATA_ROOT}/HighResMIP/TC_test/V850/V850.*\.nc"
+        -o "test_mesh_join.nc" -s 0,-1 -x lon -y lat -t time -c 4 -n 1 -p PSL U850 V850
+    FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
