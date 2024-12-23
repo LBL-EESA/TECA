@@ -449,6 +449,10 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
 #endif
             )
 
+        // save the var id
+        this->var_def[coord_array_names[i]] = var_def_t(parent_id, var_id,
+            var_type_code);
+
         // NOTE: Moved writing arrays to directly after defining them. There
         // used to be a separate for-loop later that wrote them. However,
         // doing this here reduces the amount of code needed. Furthermore,
