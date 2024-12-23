@@ -1017,7 +1017,8 @@ int write_variable_attributes(int parent_id, int var_id,
                 var_id, att_name.c_str(), att_val.size()+1,
                 att_val.c_str())) != NC_NOERR)
             {
-                TECA_ERROR("failed to put attribute \"" << att_name << "\"")
+                TECA_ERROR("failed to put attribute \"" << att_name << "\" "
+                    << nc_strerror(ierr))
             }
 #if !defined(HDF5_THREAD_SAFE)
             }
