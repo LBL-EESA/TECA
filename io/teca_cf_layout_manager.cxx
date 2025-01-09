@@ -449,9 +449,31 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
 #endif
             )
 
+        // NOTE: The first implentation was the following:
+        // Save the var to var_def so that attributes get written with other variables
+        //
         // save the var id
-        this->var_def[coord_array_names[i]] = var_def_t(parent_id, var_id,
-            var_type_code);
+        // this->var_def[coord_array_names[i]] = var_def_t(parent_id, var_id,
+        //    var_type_code);
+        //
+        // While this approach avoided code duplication, it caused an error when
+        // trying to write the attribute "_FillValue" after writing the data.
+        // To work around this error, we write the attributes of the coordinate
+        // axes directly here instead of saving the var id for later writing.
+        //
+        // write variable attributes
+        // (this needs to be done before writing arrays to avoid a NetCDF error
+        // of specifying fill value when data already exists)
+        teca_metadata array_atts;
+        if (array_attributes.get(coord_array_names[i], array_atts) == 0)
+        {
+            if (teca_netcdf_util::write_variable_attributes(
+                parent_id, var_id, array_atts))
+            {
+                TECA_ERROR("Failed to write attributes for \""
+                    << coord_array_names[i] << "\"")
+            }
+        }
 
         // NOTE: Moved writing arrays to directly after defining them. There
         // used to be a separate for-loop later that wrote them. However,
