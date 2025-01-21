@@ -15,6 +15,99 @@
 #include <cerrno>
 #include <string>
 
+namespace
+{
+ /**
+ * Parse a fully-qualified variable path to determine its group ID and name within the group.
+ * Create the group if it does not already exist.
+ *
+ * @param[in] file_id Identifier for the NetCDF file where the group and variable reside.
+ * @param[in] full_path_varname Fully-qualified variable path (e.g., "group/variable").
+ * @param[in] move_vars_to_root Flag indicating whether to assign the variable to the root group, ignoring the group hierarchy.
+ * @param[out] parent_id Identifier of the group where the variable resides. This is the root group if `move_vars_to_root` is true.
+ * @param[out] name_in_group Name of the variable within its group.
+ *
+ * @return 0 on success, -1 on error (e.g., unsupported nested groups or failure to create/query the group).
+ */
+    int full_path_varname_to_group_id_and_name_in_group(int file_id,
+        const std::string& full_path_varname, bool move_vars_to_root,
+        int &parent_id, std::string& name_in_group)
+    {
+        // Split full_path_varname into group and data set name within group
+        // components. First, find the position of the last '/' in the name.
+        // The part after that is the data set name.
+        std::string::size_type pos = full_path_varname.rfind('/');
+        if (pos != std::string::npos)
+        {
+            // Found a '/', so data set should be in a group. Extract group
+            // name and data set name as string portions before and after the
+            // '/'
+            std::string parent_group_name = full_path_varname.substr(0, pos);
+            name_in_group = full_path_varname.substr(pos+1);
+
+            if (move_vars_to_root)
+            {
+                // When moving data sets to root, just ignore the extracted
+                // group name and return the file_id as parent_id
+                parent_id = file_id;
+            }
+            else
+            {
+                // Otherwise create the group as needed.
+                // Check for nested groups, which we currently do not support
+                if (parent_group_name.rfind('/') != std::string::npos)
+                {
+                    // TODO/FIXME: Nested groups add more complexity and are
+                    // currently not supported by reader. This case should
+                    // not occur as the reader does not support it either,
+                    // but add test to catch this if it occurs in the future.
+                    TECA_ERROR("Nested groups as in \"" << full_path_varname
+                        << "\" are currently not supported!")
+                    return -1;
+                }
+
+                int ierr;
+                // Check if group already exists in file by trying to get its id
+                if ((ierr = nc_inq_grp_ncid(file_id, parent_group_name.c_str(),
+                    &parent_id)) != NC_NOERR)
+                {
+                    if (ierr != NC_ENOGRP)
+                    {
+                        // Error opening group was for a different reason than
+                        // it not existing -> Print error and exit
+                        TECA_ERROR("failed to query group \""
+                            << parent_group_name << "\" for variable \""
+                            << full_path_varname << "\" " << nc_strerror(ierr))
+                        return -1;
+                    }
+                    else
+                    {
+                        // Couldn't open group because it does not exist, yet
+                        // -> Create it
+                        if ((ierr = nc_def_grp(file_id,
+                            parent_group_name.c_str(), &parent_id)) != NC_NOERR)
+                        {
+                            TECA_ERROR("failed to create group \""
+                                << parent_group_name << "\" for variable \""
+                                << full_path_varname << "\" "
+                                << nc_strerror(ierr))
+                            return -1;
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            // Full name does not contain a `/`, so variable is in root group
+            parent_id = file_id;
+            name_in_group = full_path_varname;
+        }
+
+        return 0;
+    }
+}
+
 using namespace teca_variant_array_util;
 
 // -------------------------------------/-------------------------------------
@@ -118,7 +211,8 @@ int teca_cf_layout_manager::create(const std::string &file_name,
 int teca_cf_layout_manager::define(const teca_metadata &md_in,
     unsigned long *wextent, const std::vector<std::string> &point_arrays,
     const std::vector<std::string> &info_arrays,
-    int collective_buffer, int compression_level)
+    int collective_buffer, int compression_level,
+    bool move_vars_to_root)
 {
     if (this->defined())
         return 0;
@@ -294,16 +388,30 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
     }
 
     // build the dictionary of names to ncids
+    // and write coordinate arrays
     int dim_ids[4] = {-1};
     for (int i = 0; i < this->n_dims; ++i)
     {
         // define dimension
         int dim_id = -1;
+        int parent_id = -1;
+        std::string coord_array_name_in_group;
 #if !defined(HDF5_THREAD_SAFE)
         {
         std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-        if ((ierr = nc_def_dim(this->handle.get(), coord_array_names[i].c_str(),
+
+        // create group, if necessary
+        if (full_path_varname_to_group_id_and_name_in_group(this->handle.get(),
+            coord_array_names[i], move_vars_to_root,
+            parent_id, coord_array_name_in_group) != 0)
+        {
+            TECA_ERROR("failed to create or get group for coordinate axis"
+                <<  i << " \"" << coord_array_names[i] << "\"")
+            return -1;
+        }
+
+        if ((ierr = nc_def_dim(parent_id, coord_array_name_in_group.c_str(),
             this->dims[i], &dim_id)) != NC_NOERR)
         {
             TECA_ERROR("failed to define dimensions for coordinate axis "
@@ -328,7 +436,7 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-            if ((ierr = nc_def_var(this->handle.get(), coord_array_names[i].c_str(),
+            if ((ierr = nc_def_var(parent_id, coord_array_name_in_group.c_str(),
                 var_nc_type, 1, &dim_id, &var_id)) != NC_NOERR)
             {
                 TECA_ERROR("failed to define variables for coordinate axis "
@@ -341,8 +449,70 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
 #endif
             )
 
+        // NOTE: The first implentation was the following:
+        // Save the var to var_def so that attributes get written with other variables
+        //
         // save the var id
-        this->var_def[coord_array_names[i]] = var_def_t(var_id, var_type_code);
+        // this->var_def[coord_array_names[i]] = var_def_t(parent_id, var_id,
+        //    var_type_code);
+        //
+        // While this approach avoided code duplication, it caused an error when
+        // trying to write the attribute "_FillValue" after writing the data.
+        // To work around this error, we write the attributes of the coordinate
+        // axes directly here instead of saving the var id for later writing.
+        //
+        // write variable attributes
+        // (this needs to be done before writing arrays to avoid a NetCDF error
+        // of specifying fill value when data already exists)
+        teca_metadata array_atts;
+        if (array_attributes.get(coord_array_names[i], array_atts) == 0)
+        {
+            if (teca_netcdf_util::write_variable_attributes(
+                parent_id, var_id, array_atts))
+            {
+                TECA_ERROR("Failed to write attributes for \""
+                    << coord_array_names[i] << "\"")
+            }
+        }
+
+        // NOTE: Moved writing arrays to directly after defining them. There
+        // used to be a separate for-loop later that wrote them. However,
+        // doing this here reduces the amount of code needed. Furthermore,
+        // defining other vars in between led to NetCDF errors and writing
+        // them here fixes those (even though there are no obviuos reasons
+        // why delaying writing would cause errors, moving writing here fixed
+        // the problems.)
+
+        size_t start = 0;
+        // only rank 0 should write these since they are the same on all ranks
+        // set the count to be the dimension size (this needs to be an actual
+        // size, not NC_UNLIMITED, which results in coordinate arrays not being
+        // written)
+        size_t count = rank == 0 ? (this->dims[i] == NC_UNLIMITED ?
+            unlimited_dim_actual_size : this->dims[i]) : 0;
+
+        VARIANT_ARRAY_DISPATCH(coord_arrays[i].get(),
+
+            auto [spa, pa] = get_host_accessible<CTT>(coord_arrays[i]);
+
+            pa += starts[i];
+
+            sync_host_access_any(coord_arrays[i]);
+
+#if !defined(HDF5_THREAD_SAFE)
+            {
+            std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+            if ((ierr = nc_put_vara(parent_id, var_id, &start, &count, pa)) != NC_NOERR)
+            {
+                TECA_ERROR("failed to write \"" << coord_array_names[i] << "\" axis. "
+                    << nc_strerror(ierr))
+                return -1;
+            }
+#if !defined(HDF5_THREAD_SAFE)
+            }
+#endif
+            )
     }
 
     // define variables for each point array
@@ -398,6 +568,26 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
         }
 
         int var_id = -1;
+        int parent_id = -1;
+        std::string name_in_group;
+        // create group, if necessary
+
+#if !defined(HDF5_THREAD_SAFE)
+        {
+        std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
+#endif
+        if (full_path_varname_to_group_id_and_name_in_group(this->handle.get(),
+            name, move_vars_to_root, parent_id, name_in_group) != 0)
+        {
+            TECA_ERROR("failed to get group for point array \""
+                << name << "\"")
+            return -1;
+        }
+
+#if !defined(HDF5_THREAD_SAFE)
+        }
+#endif
+
         CODE_DISPATCH(var_type_code,
             // define variable
             int var_nc_type = teca_netcdf_util::netcdf_tt<NT>::type_code;
@@ -405,7 +595,8 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-            if ((ierr = nc_def_var(this->handle.get(), name.c_str(), var_nc_type,
+
+            if ((ierr = nc_def_var(parent_id, name_in_group.c_str(), var_nc_type,
                 n_active, active_dim_ids, &var_id)) != NC_NOERR)
             {
                 TECA_ERROR("failed to define variable for point array \""
@@ -418,7 +609,8 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
             )
 
        // save the variable definition
-       this->var_def[name] = var_def_t(var_id, var_type_code, adims);
+       this->var_def[name] = var_def_t(parent_id, var_id,
+           var_type_code, adims);
 
 #if !defined(HDF5_THREAD_SAFE)
         {
@@ -426,7 +618,7 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
 #endif
         // turn on compression for point arrays
         if ((compression_level > 0) &&
-            ((ierr = nc_def_var_deflate(this->handle.get(),
+            ((ierr = nc_def_var_deflate(parent_id,
                 var_id, 0, 1, compression_level) != NC_NOERR)))
         {
             TECA_ERROR("failed to set compression level to "
@@ -437,11 +629,11 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
 
 #if defined(TECA_HAS_NETCDF_MPI)
         int access_mode = collective_buffer ? NC_COLLECTIVE : NC_INDEPENDENT;
-        if (is_init && ((ierr = nc_var_par_access(this->handle.get(),
+        if (is_init && ((ierr = nc_var_par_access(parent_id,
             var_id, access_mode)) != NC_NOERR))
         {
             TECA_ERROR("Failed to set "
-                << (collective_buffer ? "collective" : "independant")
+                << (collective_buffer ? "collective" : "independent")
                 << " access  mode on variable \"" << name << "\"")
             return -1;
         }
@@ -480,12 +672,22 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
         // define dimension
         std::string dim_name = "dim_" + name;
         int dim_id = -1;
+        int parent_id = -1;
+        std::string name_in_group;
 #if !defined(HDF5_THREAD_SAFE)
         {
         std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-        if ((ierr = nc_def_dim(this->handle.get(), dim_name.c_str(),
-            size, &dim_id)) != NC_NOERR)
+        // create group, if necessary
+        if (full_path_varname_to_group_id_and_name_in_group(this->handle.get(),
+            name, move_vars_to_root, parent_id, name_in_group) != 0)
+        {
+            TECA_ERROR("failed to get group for information array "
+                << i << "\"" << name << "\"")
+            return -1;
+        }
+
+        if ((ierr = nc_def_dim(parent_id, dim_name.c_str(), size, &dim_id)) != NC_NOERR)
         {
             TECA_ERROR("failed to define dimensions for information array "
                 <<  i << " \"" << name << "\" " << nc_strerror(ierr))
@@ -516,7 +718,7 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-            if ((ierr = nc_def_var(this->handle.get(), name.c_str(), var_nc_type,
+            if ((ierr = nc_def_var(parent_id, name_in_group.c_str(), var_nc_type,
                 n_info_dims, info_dim_ids, &var_id)) != NC_NOERR)
             {
                 TECA_ERROR("failed to define variable for information array \""
@@ -527,7 +729,7 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
             }
 #endif
             // save the var id
-            this->var_def[name] = var_def_t(var_id, type_code);
+            this->var_def[name] = var_def_t(parent_id, var_id, type_code);
             )
 
 #if defined(TECA_HAS_NETCDF_MPI)
@@ -535,12 +737,13 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
         {
         std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-        if (is_init && ((ierr = nc_var_par_access(this->handle.get(), var_id,
+        if (is_init && ((ierr = nc_var_par_access(parent_id, var_id,
             NC_INDEPENDENT)) != NC_NOERR))
         {
             TECA_ERROR("Failed to set independent mode on variable \"" << name << "\"")
             return -1;
         }
+
 #if !defined(HDF5_THREAD_SAFE)
         }
 #endif
@@ -560,9 +763,10 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
             continue;
         }
 
+        int parent_id = it->second.parent_id;
         int var_id = it->second.var_id;
         if (teca_netcdf_util::write_variable_attributes(
-            this->handle, var_id, array_atts))
+            parent_id, var_id, array_atts))
         {
             TECA_ERROR("Failed to write attributes for \"" << array_name << "\"")
         }
@@ -584,51 +788,6 @@ int teca_cf_layout_manager::define(const teca_metadata &md_in,
 #if !defined(HDF5_THREAD_SAFE)
     }
 #endif
-
-    // write the coordinate arrays
-    for (int i = 0; i < this->n_dims; ++i)
-    {
-        // look up the var id
-        std::string array_name = coord_array_names[i];
-        std::map<std::string, var_def_t>::iterator it = this->var_def.find(array_name);
-        if (it  == this->var_def.end())
-        {
-            TECA_ERROR("No var id for \"" << array_name << "\"")
-            return -1;
-        }
-        int var_id = it->second.var_id;
-
-        size_t start = 0;
-        // only rank 0 should write these since they are the same on all ranks
-        // set the count to be the dimension size (this needs to be an actual
-        // size, not NC_UNLIMITED, which results in coordinate arrays not being
-        // written)
-        size_t count = rank == 0 ? (this->dims[i] == NC_UNLIMITED ?
-            unlimited_dim_actual_size : this->dims[i]) : 0;
-
-        VARIANT_ARRAY_DISPATCH(coord_arrays[i].get(),
-
-            auto [spa, pa] = get_host_accessible<CTT>(coord_arrays[i]);
-
-            pa += starts[i];
-
-            sync_host_access_any(coord_arrays[i]);
-
-#if !defined(HDF5_THREAD_SAFE)
-            {
-            std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
-#endif
-            if ((ierr = nc_put_vara(this->handle.get(), var_id, &start, &count, pa)) != NC_NOERR)
-            {
-                TECA_ERROR("failed to write \"" << coord_array_names[i] << "\" axis. "
-                    << nc_strerror(ierr))
-                return -1;
-            }
-#if !defined(HDF5_THREAD_SAFE)
-            }
-#endif
-            )
-    }
 
     return 0;
 }
@@ -676,6 +835,7 @@ int teca_cf_layout_manager::write(long index,
                 //TECA_ERROR("No var id for \"" << array_name << "\"")
                 //return -1;
             }
+            int parent_id = it->second.parent_id;
             int var_id = it->second.var_id;
             unsigned int declared_type_code = it->second.type_code;
             const std::array<int,4> &active_dims = it->second.active_dims;
@@ -713,7 +873,7 @@ int teca_cf_layout_manager::write(long index,
                 {
                 std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-                if ((ierr = nc_put_vara(this->handle.get(), var_id, starts, counts, pa)) != NC_NOERR)
+                if ((ierr = nc_put_vara(parent_id, var_id, starts, counts, pa)) != NC_NOERR)
                 {
                     TECA_ERROR("failed to write point array \"" << array_name << "\". "
                         << nc_strerror(ierr))
@@ -750,6 +910,7 @@ int teca_cf_layout_manager::write(long index,
                 //TECA_ERROR("No var id for \"" << array_name << "\"")
                 //return -1;
             }
+            int parent_id = it->second.parent_id;
             int var_id = it->second.var_id;
             unsigned int declared_type_code = it->second.type_code;
 
@@ -775,7 +936,7 @@ int teca_cf_layout_manager::write(long index,
                 {
                 std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-                if ((ierr = nc_put_vara(this->handle.get(), var_id, starts, counts, pa)) != NC_NOERR)
+                if ((ierr = nc_put_vara(parent_id, var_id, starts, counts, pa)) != NC_NOERR)
                 {
                     TECA_ERROR("failed to write information array \"" << array_name << "\". "
                         << nc_strerror(ierr))
@@ -846,6 +1007,7 @@ int teca_cf_layout_manager::write(const unsigned long extent[6],
                 //TECA_ERROR("No var id for \"" << array_name << "\"")
                 //return -1;
             }
+            int parent_id = it->second.parent_id;
             int var_id = it->second.var_id;
             unsigned int declared_type_code = it->second.type_code;
             const std::array<int,4> &active_dims = it->second.active_dims;
@@ -894,7 +1056,7 @@ int teca_cf_layout_manager::write(const unsigned long extent[6],
                 {
                 std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-                if ((ierr = nc_put_vara(this->handle.get(), var_id, starts, counts, pa)) != NC_NOERR)
+                if ((ierr = nc_put_vara(parent_id, var_id, starts, counts, pa)) != NC_NOERR)
                 {
                     TECA_ERROR("failed to write point array \"" << array_name << "\". "
                         << nc_strerror(ierr))
@@ -932,6 +1094,7 @@ int teca_cf_layout_manager::write(const unsigned long extent[6],
                 //TECA_ERROR("No var id for \"" << array_name << "\"")
                 //return -1;
             }
+            int parent_id = it->second.parent_id;
             int var_id = it->second.var_id;
             unsigned int declared_type_code = it->second.type_code;
 
@@ -963,7 +1126,7 @@ int teca_cf_layout_manager::write(const unsigned long extent[6],
                 {
                 std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-                if ((ierr = nc_put_vara(this->handle.get(), var_id, starts, counts, pa)) != NC_NOERR)
+                if ((ierr = nc_put_vara(parent_id, var_id, starts, counts, pa)) != NC_NOERR)
                 {
                     TECA_ERROR("failed to write information array \"" << array_name << "\". "
                         << nc_strerror(ierr))

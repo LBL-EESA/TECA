@@ -93,7 +93,14 @@ teca_add_test(test_cf_reader_era5
 teca_add_test(test_cf_reader_era5_group
     COMMAND test_cf_reader
     -i "${TECA_DATA_ROOT}/e5_grouptest\.oper\.an\.vinteg\.162_072_viwvn.*\.nc"
-    -o "test_cf_reader_era5_%t%.%e%" -s 0,-1 -x longitude -y latitude -t time variables/VIWVN
+    -o "test_cf_reader_era5_%t%.%e%" -s 0,-1 -x test_group/longitude -y test_group/latitude -t time test_group/VIWVN
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_reader_ensemble
+    COMMAND test_cf_reader
+    -i "${TECA_DATA_ROOT}/ensemble_test_data\.nc"
+    -o "test_cf_reader_ensemble_test_%t%.%e%" -s 0,-1 -x global/lon -y global/lat -t time -w ensemble -m 1 global/ivt
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
@@ -145,6 +152,14 @@ teca_add_test(test_cf_writer_era5_serial
     COMMAND test_cf_writer
     -i "${TECA_DATA_ROOT}/e5\.oper\.an\.vinteg\.162_072_viwvn.*\.nc"
     -o "test_cf_writer_era5_s_%t%.nc" -s 0,-1 -x longitude -y latitude -t time -c 2 -n 1 VIWVN
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_test(test_cf_writer_era5_group_serial
+    COMMAND test_cf_writer
+    -i "${TECA_DATA_ROOT}/e5_grouptest\.oper\.an\.vinteg\.162_072_viwvn.*\.nc"
+    -o "test_cf_writer_era5_group_s_%t%.nc" -s 0,-1 -x test_group/longitude
+    -y test_group/latitude -t time -c 2 -n 1 test_group/VIWVN
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 

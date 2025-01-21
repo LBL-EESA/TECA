@@ -388,7 +388,7 @@ int read_attribute(int parent_id, int var_id, int att_id, teca_metadata &atts)
 int read_variable_attributes(netcdf_handle &fh,
     const std::string &var_name, teca_metadata &atts)
 {
-    return read_variable_attributes(fh, var_name, "", "", "", "", false, atts);
+    return read_variable_attributes(fh, var_name, "", "", "", "", "", false, atts);
 }
 
 // **************************************************************************
@@ -419,7 +419,8 @@ int get_varid(netcdf_handle &fh, const std::string &var_name,
 int read_variable_attributes(netcdf_handle &fh, const std::string &var_name,
     const std::string &x_axis_variable, const std::string &y_axis_variable,
     const std::string &z_axis_variable, const std::string &t_axis_variable,
-    int clamp_dimensions_of_one, teca_metadata &atts)
+    const std::string &ensemble_dimension_name, int clamp_dimensions_of_one,
+    teca_metadata &atts)
 {
     int ierr = 0;
     int parent_id = 0;
@@ -494,6 +495,7 @@ int read_variable_attributes(netcdf_handle &fh, const std::string &var_name,
     // read the dimensions
     int n_mesh_dims = 0;
     int have_mesh_dim[4] = {0};
+    int have_ensemble_dim = 0;
 
     int mesh_dim_active[4] = {0};
     int n_active_dims = 0;
@@ -554,6 +556,11 @@ int read_variable_attributes(netcdf_handle &fh, const std::string &var_name,
             have_mesh_dim[3] = 1;
             mesh_dim_active[3] = 1;
         }
+        else if (!ensemble_dimension_name.empty() &&
+            !strcmp(dim_name, ensemble_dimension_name.c_str()))
+        {
+            have_ensemble_dim = 1;
+        }
 
         dim_names.push_back(dim_name);
         dims.push_back(dim);
@@ -567,8 +574,6 @@ int read_variable_attributes(netcdf_handle &fh, const std::string &var_name,
         centering = teca_array_attributes::point_centering;
     }
 
-    // If parent is file, use NC_GLOBAL identifier instead as file handle
-    // may be closed
     atts.set("cf_parent_group", group_name);
     atts.set("cf_id", var_id);
     atts.set("cf_dims", dims);
@@ -577,6 +582,7 @@ int read_variable_attributes(netcdf_handle &fh, const std::string &var_name,
     atts.set("type_code", var_type);
     atts.set("centering", centering);
     atts.set("have_mesh_dim", have_mesh_dim, 4);
+    atts.set("have_ensemble_dim", have_ensemble_dim);
     atts.set("mesh_dim_active", mesh_dim_active, 4);
     atts.set("n_mesh_dims", n_mesh_dims);
     atts.set("n_active_dims", n_active_dims);
@@ -589,14 +595,15 @@ int read_variable_attributes(netcdf_handle &fh, const std::string& parent_group,
     int var_id, std::string &name, teca_metadata &atts)
 {
     return teca_netcdf_util::read_variable_attributes(fh, parent_group, var_id,
-        "", "", "", "", 0, name, atts);
+        "", "", "", "", "", 0, name, atts);
 }
 
 // **************************************************************************
 int read_variable_attributes(netcdf_handle &fh, const std::string& parent_group,
     int var_id, const std::string &x_axis_variable,
     const std::string &y_axis_variable, const std::string &z_axis_variable,
-    const std::string &t_axis_variable, int clamp_dimensions_of_one,
+    const std::string &t_axis_variable,
+    const std::string &ensemble_dimension_name, int clamp_dimensions_of_one,
     std::string &name, teca_metadata &atts)
 {
     int ierr = 0;
@@ -663,12 +670,31 @@ int read_variable_attributes(netcdf_handle &fh, const std::string& parent_group,
     // read the dimensions
     int n_mesh_dims = 0;
     int have_mesh_dim[4] = {0};
+    int have_ensemble_dim = 0;
 
     int n_active_dims = 0;
     int mesh_dim_active[4] = {0};
 
     std::vector<size_t> dims;
     std::vector<std::string> dim_names;
+
+    // TODO/FIXME: Originally TECA assumes that dimension name is the same asa
+    // variable name. For variables in groups we are relaxing this assumption to
+    // that the dimension name is the same as the variable name within its
+    // group. We may want to revisit this assumption if we find any data sets
+    // that violate it.
+    auto pos = x_axis_variable.rfind('/');
+    std::string x_axis_name = (pos == std::string::npos) ?
+        x_axis_variable : x_axis_variable.substr(pos + 1);
+    pos = y_axis_variable.rfind('/');
+    std::string y_axis_name = (pos == std::string::npos) ?
+        y_axis_variable : y_axis_variable.substr(pos+1);
+    pos = z_axis_variable.rfind('/');
+    std::string z_axis_name = (pos == std::string::npos) ?
+        z_axis_variable : z_axis_variable.substr(pos+1);
+    pos = t_axis_variable.rfind('/');
+    std::string t_axis_name = (pos == std::string::npos) ?
+        t_axis_variable : t_axis_variable.substr(pos+1);
 
     for (int ii = 0; ii < n_dims; ++ii)
     {
@@ -689,8 +715,8 @@ int read_variable_attributes(netcdf_handle &fh, const std::string& parent_group,
 #endif
         int active = (clamp_dimensions_of_one && (dim == 1) ? 0 : 1);
 
-        if (!x_axis_variable.empty() &&
-            !strcmp(dim_name, x_axis_variable.c_str()))
+        if (!x_axis_name.empty() &&
+            !strcmp(dim_name, x_axis_name.c_str()))
         {
             have_mesh_dim[0] = 1;
             n_mesh_dims += 1;
@@ -698,8 +724,8 @@ int read_variable_attributes(netcdf_handle &fh, const std::string& parent_group,
             mesh_dim_active[0] = active;
             n_active_dims += active;
         }
-        else if (!y_axis_variable.empty() &&
-            !strcmp(dim_name, y_axis_variable.c_str()))
+        else if (!y_axis_name.empty() &&
+            !strcmp(dim_name, y_axis_name.c_str()))
         {
             have_mesh_dim[1] = 1;
             n_mesh_dims += 1;
@@ -707,8 +733,8 @@ int read_variable_attributes(netcdf_handle &fh, const std::string& parent_group,
             mesh_dim_active[1] = active;
             n_active_dims += active;
         }
-        else if (!z_axis_variable.empty() &&
-            !strcmp(dim_name, z_axis_variable.c_str()))
+        else if (!z_axis_name.empty() &&
+            !strcmp(dim_name, z_axis_name.c_str()))
         {
             have_mesh_dim[2] = 1;
             n_mesh_dims += 1;
@@ -716,11 +742,16 @@ int read_variable_attributes(netcdf_handle &fh, const std::string& parent_group,
             mesh_dim_active[2] = active;
             n_active_dims += active;
         }
-        else if (!t_axis_variable.empty() &&
-            !strcmp(dim_name, t_axis_variable.c_str()))
+        else if (!t_axis_name.empty() &&
+            !strcmp(dim_name, t_axis_name.c_str()))
         {
             have_mesh_dim[3] = 1;
             mesh_dim_active[3] = 1;
+        }
+        else if (!ensemble_dimension_name.empty() &&
+             !strcmp(dim_name, ensemble_dimension_name.c_str()))
+        {
+            have_ensemble_dim = 1;
         }
 
         dim_names.push_back(dim_name);
@@ -730,7 +761,8 @@ int read_variable_attributes(netcdf_handle &fh, const std::string& parent_group,
     // can only be point centered if all the dimensions are active coordinate
     // axes
     unsigned int centering = teca_array_attributes::no_centering;
-    if ((n_mesh_dims + have_mesh_dim[3]) == n_dims)
+    // if ((n_mesh_dims + have_mesh_dim[3] == n_dims)
+    if ((n_mesh_dims + have_mesh_dim[3] + have_ensemble_dim) == n_dims)
     {
         centering = teca_array_attributes::point_centering;
     }
@@ -745,6 +777,7 @@ int read_variable_attributes(netcdf_handle &fh, const std::string& parent_group,
     atts.set("type_code", var_type);
     atts.set("centering", centering);
     atts.set("have_mesh_dim", have_mesh_dim);
+    atts.set("have_ensemble_dim", have_ensemble_dim);
     atts.set("mesh_dim_active", mesh_dim_active);
     atts.set("n_mesh_dims", n_mesh_dims);
     atts.set("n_active_dims", n_active_dims);
@@ -777,7 +810,7 @@ read_variable_and_attributes::operator()(int device_id)
     int ierr = 0;
     teca_metadata atts;
     if (teca_netcdf_util::read_variable_attributes(fh,
-        m_variable, "", "", "", "", false, atts))
+        m_variable, "", "", "", "", "", false, atts))
     {
         TECA_ERROR("Failed to read \"" << m_variable << "\" attributes")
         return this->package(m_id);
@@ -938,7 +971,7 @@ read_variable::data_t read_variable::operator()(int device_id)
 }
 
 // **************************************************************************
-int write_variable_attributes(netcdf_handle &fh, int var_id,
+int write_variable_attributes(int parent_id, int var_id,
     teca_metadata &array_atts)
 {
     int ierr = 0;
@@ -959,8 +992,9 @@ int write_variable_attributes(netcdf_handle &fh, int var_id,
             (att_name == "cf_dims") || (att_name == "cf_dim_names") ||
             (att_name == "type_code") || (att_name == "cf_type_code") ||
             (att_name == "centering") || (att_name == "size") ||
-            (att_name == "have_mesh_dim") || (att_name == "mesh_dim_active") ||
-            (att_name == "n_mesh_dims") || (att_name == "n_active_dims"))
+            (att_name == "have_mesh_dim") || (att_name == "have_ensemble_dim") ||
+            (att_name == "mesh_dim_active") || (att_name == "n_mesh_dims") ||
+            (att_name == "n_active_dims"))
             continue;
 
         // get the attribute value
@@ -979,11 +1013,12 @@ int write_variable_attributes(netcdf_handle &fh, int var_id,
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-            if ((ierr = nc_put_att_text(fh.get(),
+            if ((ierr = nc_put_att_text(parent_id,
                 var_id, att_name.c_str(), att_val.size()+1,
                 att_val.c_str())) != NC_NOERR)
             {
-                TECA_ERROR("failed to put attribute \"" << att_name << "\"")
+                TECA_ERROR("failed to put attribute \"" << att_name << "\" "
+                    << nc_strerror(ierr))
             }
 #if !defined(HDF5_THREAD_SAFE)
             }
@@ -1000,7 +1035,7 @@ int write_variable_attributes(netcdf_handle &fh, int var_id,
             {
             std::lock_guard<std::mutex> lock(teca_netcdf_util::get_netcdf_mutex());
 #endif
-            if ((ierr = nc_put_att(fh.get(), var_id, att_name.c_str(), type,
+            if ((ierr = nc_put_att(parent_id, var_id, att_name.c_str(), type,
                 n_vals, pvals)) != NC_NOERR)
             {
                 TECA_ERROR("failed to put attribute \"" << att_name << "\" "

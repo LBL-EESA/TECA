@@ -167,7 +167,7 @@ int write_netcdf(const_p_teca_table table, const std::string &file_name,
         if (atrs.get(col_name, col_atts) == 0)
         {
             if (teca_netcdf_util::write_variable_attributes(
-                fh, col_var_id, col_atts))
+                fh.get(), col_var_id, col_atts))
             {
                 TECA_ERROR("Failed to write the attributes for column \""
                     << col_name << "\"")

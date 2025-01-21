@@ -79,9 +79,11 @@ int parse_command_line(int argc, char **argv, int rank,
     string y_ax = "lat";
     string z_ax = "";
     string t_ax = "";
+    string ensemble_ax = "";
     string t_template = "";
     long first_step = 0;
     long last_step = -1;
+    long ensemble_member_idx = 0;
     std::vector<double> bounds;
     std::vector<unsigned long> extent;
 
@@ -145,6 +147,16 @@ int parse_command_line(int argc, char **argv, int rank,
                 ext, ext+1, ext+2, ext+3, ext+4, ext+5);
             ++j;
         }
+        else if (!strcmp("-w", argv[i]))
+        {
+            ensemble_ax = argv[++i];
+            ++j;
+        }
+        else if (!strcmp("-m", argv[i]))
+        {
+            sscanf(argv[++i], "%lu", &ensemble_member_idx);
+            ++j;
+        }
     }
 
     vector<string> arrays;
@@ -158,7 +170,11 @@ int parse_command_line(int argc, char **argv, int rank,
     cf_reader->set_t_axis_variable(t_ax);
     cf_reader->set_files_regex(regex);
     cf_reader->set_filename_time_template(t_template);
-
+    if (!ensemble_ax.empty())
+    {
+        cf_reader->set_ensemble_dimension_name(ensemble_ax);
+        cf_reader->set_select_ensemble_member_index(ensemble_member_idx);
+    }
     vtk_writer->set_file_name(output);
 
     exec->set_start_index(first_step);

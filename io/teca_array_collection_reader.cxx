@@ -314,7 +314,7 @@ teca_metadata teca_array_collection_reader::get_output_metadata(unsigned int por
             std::string name;
             teca_metadata atts;
             if (teca_netcdf_util::read_variable_attributes(fh, "", i,
-                "", "", "", t_axis_variable, 0, name, atts))
+                "", "", "", t_axis_variable, "", 0, name, atts))
             {
                 this->clear_cached_metadata();
                 TECA_FATAL_ERROR("Failed to read " << i <<"th variable attributes")
