@@ -10,6 +10,7 @@
 #include <DataArray1D.h>
 #include <SimpleGridUtilities.h>
 #include <kdtree.h>
+#include "STLStringHelper.h"
 
 #include <iostream>
 #include <string>
@@ -22,6 +23,7 @@
 
 #if defined(TECA_HAS_CUDA)
 #include "teca_cuda_util.h"
+#include "cuCompactor.cuh"
 #endif
 
 #define TECA_DEBUG 1
@@ -340,8 +342,523 @@ bool satisfies_threshold(
     return false;
 }
 
+#if defined(TECA_HAS_CUDA)
+struct int_predicate
+{
+   __host__ __device__
+   bool operator()(const int x)
+   {
+      return x>=0;
+   }
+};
+namespace cuda_gpu
+{
+// --------------------------------------------------------------------------
+template <typename T>
+__global__
+void generate_rectilinear_connectivity(
+     T *p_vecConnectivity,
+     unsigned long nLat,
+     unsigned long nLon,
+     bool fRegional,
+     bool fDiagonalConnectivity)
+{
+    unsigned long q = teca_cuda_util::thread_id_to_array_index();
+
+    if (q >= nLat*nLon)
+       return;
+
+    unsigned long i = q % nLon; //lon index
+    unsigned long j = q / nLon; //lat index
+
+    int neighbors = 0;
+
+    // Connectivity in eight directions
+    if (fDiagonalConnectivity)
+    {
+       if (fRegional)
+       {
+          for (int ix = -1; ix <= 1; ix++)
+          {
+             for (int jx = -1; jx <= 1; jx++)
+             {
+                if ((ix == 0) && (jx == 0))
+                {
+                   continue;
+                }
+
+                int inew = i + ix;
+                int jnew = j + jx;
+
+                if ((inew < 0) || (inew >= nLon))
+                {
+                   neighbors++;
+                   continue;
+                }
+                if ((jnew < 0) || (jnew >= nLat))
+                {
+                   neighbors++;
+                   continue;
+                }
+                p_vecConnectivity[neighbors * nLat * nLon + q] = jnew * nLon + inew;
+                neighbors++;
+             }
+          }
+       } else {
+          for (int ix = -1; ix <= 1; ix++)
+          {
+             for (int jx = -1; jx <= 1; jx++)
+             {
+                if ((ix == 0) && (jx == 0))
+                {
+                   continue;
+                }
+
+                int inew = i + ix;
+                int jnew = j + jx;
+
+                if ((jnew < 0) || (jnew >= nLat))
+                {
+                   neighbors++;
+                   continue;
+                }
+                if (inew < 0)
+                {
+                   inew += nLon;
+                }
+                if (inew >= nLon)
+                {
+                   inew -= nLon;
+                }
+
+                p_vecConnectivity[neighbors * nLat * nLon + q] = jnew * nLon + inew;
+                neighbors++;
+             }
+          }
+       }
+
+    // Connectivity in the four primary directions
+    } else {
+       if (j != 0)
+       {
+          p_vecConnectivity[neighbors * nLat * nLon + q] = (j-1) * nLon + i;
+          neighbors++;
+       }
+
+       if (j != nLat-1)
+       {
+          p_vecConnectivity[neighbors * nLat * nLon + q] = (j+1) * nLon + i;
+          neighbors++;
+       }
+
+       if ((!fRegional) || ((i != 0) && (i != nLon-1)))
+       {
+          p_vecConnectivity[neighbors * nLat * nLon + q] = j * nLon + ((i + 1) % nLon);
+          neighbors++;
+          p_vecConnectivity[neighbors * nLat * nLon + q] = j * nLon + ((i + nLon - 1) % nLon);
+       }
+       //if (fRegional)
+       //{
+       //   if (i != 0)
+       //   {
+       //      p_vecConnectivity[neighbors * nLat * nLon + q] = q - 1;
+       //   }
+       //   neighbors++;
+
+       //   if (i != nLon-1)
+       //   {
+       //      p_vecConnectivity[neighbors * nLat * nLon + q] = q + 1;
+       //   }
+       //} else {
+       //   p_vecConnectivity[neighbors * nLat * nLon + q] = j * nLon + ((i + nLon - 1) % nLon);
+       //   neighbors++;
+       //   p_vecConnectivity[neighbors * nLat * nLon + q] = j * nLon + ((i + 1) % nLon);
+       //}
+    }
+}
+// --------------------------------------------------------------------------
+template <typename T, typename T_SEARCH>
+__global__
+void find_all_local_minima(
+     T *p_vecConnectivity,
+     const T_SEARCH *p_data,
+     T_SEARCH *p_setMinima,
+     int sNeighbors,
+     unsigned long nLat,
+     unsigned long nLon)
+{
+    unsigned long q = teca_cuda_util::thread_id_to_array_index();
+
+    if (q >= nLat*nLon)
+       return;
+
+    bool fMinimum = true;
+
+    for (int n = 0; n < sNeighbors; n++)
+    {
+       if (p_vecConnectivity[n * nLat * nLon + q] >= 0)
+       {
+          if (p_data[int(p_vecConnectivity[n * nLat * nLon + q])] < p_data[q])
+          {
+             fMinimum = false;
+             break;
+          }
+       }
+    }
+
+    if (fMinimum)
+    {
+       p_setMinima[q] = q;
+    }
+}
+// --------------------------------------------------------------------------
+template <typename T, typename T_SEARCH>
+__global__
+void find_all_local_maxima(
+     T *p_vecConnectivity,
+     const T_SEARCH *p_data,
+     T_SEARCH *p_setMaxima,
+     int sNeighbors,
+     unsigned long nLat,
+     unsigned long nLon)
+{
+    unsigned long q = teca_cuda_util::thread_id_to_array_index();
+
+    if (q >= nLat*nLon)
+       return;
+
+    bool fMaximum = true;
+
+    for (int n = 0; n < sNeighbors; n++)
+    {
+       if (p_vecConnectivity[n * nLat * nLon + q] >= 0)
+       {
+          if (p_data[int(p_vecConnectivity[n * nLat * nLon + q])] > p_data[q])
+          {
+             fMaximum = false;
+             break;
+          }
+       }
+    }
+
+    if (fMaximum)
+    {
+       p_setMaxima[q] = q;
+    }
+}
+// --------------------------------------------------------------------------
+template <typename T, typename T_SEARCH>
+__global__
+void find_all_local_minmax_with_threshold(
+     T *p_vecConnectivity,
+     const T_SEARCH *p_data,
+     T_SEARCH *p_setMinima,
+     int sNeighbors,
+     unsigned long nLat,
+     unsigned long nLon,
+     bool fMinima,
+     ThresholdOp::Operation opThreshold,
+     double dThresholdValue)
+{
+    unsigned long q = teca_cuda_util::thread_id_to_array_index();
+
+    if (q >= nLat*nLon)
+       return;
+
+    T_SEARCH dSign = (fMinima)?(-1.0):(1.0);
+
+    T_SEARCH dValue = p_data[q];
+
+    bool fThreshold = true;
+    if (opThreshold != ThresholdOp::NoThreshold)
+    {
+       if (opThreshold == ThresholdOp::GreaterThan)
+       {
+          if (dValue <= static_cast<T_SEARCH>(dThresholdValue))
+          {
+             fThreshold = false;
+          }
+
+       } else if (opThreshold == ThresholdOp::LessThan)
+       {
+          if (dValue >= static_cast<T_SEARCH>(dThresholdValue))
+          {
+             fThreshold = false;
+          }
+       } else if (opThreshold == ThresholdOp::GreaterThanEqualTo)
+       {
+          if (dValue < static_cast<T_SEARCH>(dThresholdValue))
+          {
+             fThreshold = false;
+          }
+       } else if (opThreshold == ThresholdOp::LessThanEqualTo)
+       {
+          if (dValue > static_cast<T_SEARCH>(dThresholdValue))
+          {
+             fThreshold = false;
+          }
+       } else if (opThreshold == ThresholdOp::EqualTo)
+       {
+          if (dValue != static_cast<T_SEARCH>(dThresholdValue))
+          {
+             fThreshold = false;
+          }
+       } else if (opThreshold == ThresholdOp::NotEqualTo)
+       {
+          if (dValue == static_cast<T_SEARCH>(dThresholdValue))
+          {
+             fThreshold = false;
+          }
+       } else {
+          fThreshold = false;
+       }
+    }
+
+    if (fThreshold)
+    {
+       bool fExtrema = true;
+       for (int n = 0; n < sNeighbors; n++)
+       {
+          if (p_vecConnectivity[n * nLat * nLon + q] >= 0)
+          {
+             if (dSign * p_data[int(p_vecConnectivity[n * nLat * nLon + q])] > dSign * dValue)
+             {
+                fExtrema = false;
+                break;
+             }
+          }
+       }
+
+       if (fExtrema)
+       {
+          p_setMinima[q] = q;
+       }
+    }
+}
+// --------------------------------------------------------------------------
+template <typename T>
+int generate_rectilinear_connectivity(
+    int device_id,
+    T *p_vecConnectivity,
+    unsigned long nLat,
+    unsigned long nLon,
+    bool fRegional,
+    bool fDiagonalConnectivity)
+{
+    // determine kernel launch parameters
+    int n_blocks = 0;
+    dim3 block_grid;
+    dim3 thread_grid;
+
+    if (teca_cuda_util::partition_thread_blocks(device_id,
+        nLat*nLon, 8, block_grid, n_blocks, thread_grid))
+    {
+        TECA_ERROR("Failed to partition thread blocks")
+        return -1;
+    }
+
+    cudaError_t ierr = cudaSuccess;
+    generate_rectilinear_connectivity<<<block_grid,thread_grid>>>(p_vecConnectivity,
+                                        nLat, nLon, fRegional, fDiagonalConnectivity);
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to launch the generate_rectilinear_connectivity CUDA kernel: "
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
+
+    return 0;
+}
+// --------------------------------------------------------------------------
+template <typename T, typename T_SEARCH>
+int find_all_local_minima(
+    int device_id,
+    T *p_vecConnectivity,
+    const T_SEARCH *p_data,
+    T_SEARCH *p_setMinima,
+    T_SEARCH *p_setMinimaCompact,
+    int sNeighbors,
+    unsigned long nLat,
+    unsigned long nLon)
+{
+    // determine kernel launch parameters
+    int n_blocks = 0;
+    dim3 block_grid;
+    dim3 thread_grid;
+
+    if (teca_cuda_util::partition_thread_blocks(device_id,
+        nLat*nLon, 8, block_grid, n_blocks, thread_grid))
+    {
+        TECA_ERROR("Failed to partition thread blocks")
+        return -1;
+    }
+
+    cudaError_t ierr = cudaSuccess;
+    find_all_local_minima<<<block_grid,thread_grid>>>(p_vecConnectivity, p_data,
+                                            p_setMinima, sNeighbors, nLat, nLon);
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to launch the find_all_local_minima CUDA kernel: "
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
+
+    int compact_length = cuCompactor::compact<T_SEARCH>(p_setMinima, p_setMinimaCompact,
+                                         nLat*nLon, int_predicate(), thread_grid.x);
+
+    return compact_length;
+}
+// --------------------------------------------------------------------------
+template <typename T, typename T_SEARCH>
+int find_all_local_maxima(
+    int device_id,
+    T *p_vecConnectivity,
+    const T_SEARCH *p_data,
+    T_SEARCH *p_setMaxima,
+    T_SEARCH *p_setMaximaCompact,
+    int sNeighbors,
+    unsigned long nLat,
+    unsigned long nLon)
+{
+    // determine kernel launch parameters
+    int n_blocks = 0;
+    dim3 block_grid;
+    dim3 thread_grid;
+
+    if (teca_cuda_util::partition_thread_blocks(device_id,
+        nLat*nLon, 8, block_grid, n_blocks, thread_grid))
+    {
+        TECA_ERROR("Failed to partition thread blocks")
+        return -1;
+    }
+
+    cudaError_t ierr = cudaSuccess;
+    find_all_local_maxima<<<block_grid,thread_grid>>>(p_vecConnectivity, p_data,
+                                            p_setMaxima, sNeighbors, nLat, nLon);
+    if ((ierr = cudaGetLastError()) != cudaSuccess)
+    {
+        TECA_ERROR("Failed to launch the find_all_local_maxima CUDA kernel: "
+            << cudaGetErrorString(ierr))
+        return -1;
+    }
+
+    int compact_length = cuCompactor::compact<T_SEARCH>(p_setMaxima, p_setMaximaCompact,
+                                         nLat*nLon, int_predicate(), thread_grid.x);
+
+    return compact_length;
+}
+// --------------------------------------------------------------------------
+template <typename T, typename T_SEARCH>
+int find_all_local_minmax_with_threshold(
+    int device_id,
+    T *p_vecConnectivity,
+    const T_SEARCH *p_data,
+    T_SEARCH *p_setMinima,
+    T_SEARCH *p_setMinimaCompact,
+    int sNeighbors,
+    unsigned long nLat,
+    unsigned long nLon,
+    bool fMinima,
+    std::string search_by_threshold)
+{
+    if (search_by_threshold.length() != 0)
+    {
+       if (search_by_threshold.length() < 2)
+       {
+           TECA_ERROR("Threshold operator \""
+              << search_by_threshold.c_str()
+              << "\" must be of form \"<op><value>\"");
+           return -1;
+       }
+
+       ThresholdOp::Operation opThreshold = ThresholdOp::NoThreshold;
+       double dThresholdValue = 0.0;
+
+       std::string strThreshold1 = search_by_threshold.substr(0,1);
+       std::string strThreshold2 = search_by_threshold.substr(0,2);
+       std::string strThresholdValue;
+
+       if (strThreshold2 == ">=")
+       {
+           opThreshold = ThresholdOp::GreaterThanEqualTo;
+           strThresholdValue = search_by_threshold.substr(2);
+       } else if (strThreshold2 == "<=")
+       {
+           opThreshold = ThresholdOp::LessThanEqualTo;
+           strThresholdValue = search_by_threshold.substr(2);
+       } else if (strThreshold2 == "!=")
+       {
+           opThreshold = ThresholdOp::NotEqualTo;
+           strThresholdValue = search_by_threshold.substr(2);
+       } else if (strThreshold1 == ">")
+       {
+           opThreshold = ThresholdOp::GreaterThan;
+           strThresholdValue = search_by_threshold.substr(1);
+       } else if (strThreshold1 == "<")
+       {
+           opThreshold = ThresholdOp::LessThan;
+           strThresholdValue = search_by_threshold.substr(1);
+       } else if (strThreshold1 == "=")
+       {
+           opThreshold = ThresholdOp::EqualTo;
+           strThresholdValue = search_by_threshold.substr(1);
+       } else {
+           TECA_ERROR("Threshold operator \""
+              << search_by_threshold.c_str()
+              << "\" must be of form \"<op><value>\""
+              << "where <op> is one of >=,<=,!=,>,<,=");
+           return -1;
+       }
+
+       // Extract value
+       if (!STLStringHelper::IsFloat(strThresholdValue))
+       {
+           TECA_ERROR("Threshold operator \""
+              << search_by_threshold.c_str()
+              << "\" must be of form \"<op><value>\""
+              << "where <value> is a floating point number");
+           return -1;
+       }
+       dThresholdValue = static_cast<double>(std::stod(strThresholdValue));
+
+       // determine kernel launch parameters
+       int n_blocks = 0;
+       dim3 block_grid;
+       dim3 thread_grid;
+
+       if (teca_cuda_util::partition_thread_blocks(device_id,
+           nLat*nLon, 8, block_grid, n_blocks, thread_grid))
+       {
+           TECA_ERROR("Failed to partition thread blocks")
+           return -1;
+       }
+
+       cudaError_t ierr = cudaSuccess;
+       find_all_local_minmax_with_threshold<<<block_grid,thread_grid>>>(p_vecConnectivity,
+                                              p_data, p_setMinima, sNeighbors, nLat, nLon,
+                                              fMinima, opThreshold, dThresholdValue);
+       if ((ierr = cudaGetLastError()) != cudaSuccess)
+       {
+           TECA_ERROR("Failed to launch the "
+               << "find_all_local_minmax_with_threshold CUDA kernel: "
+               << cudaGetErrorString(ierr))
+           return -1;
+       }
+
+       int compact_length = cuCompactor::compact<T_SEARCH>(p_setMinima, p_setMinimaCompact,
+                                         nLat*nLon, int_predicate(), thread_grid.x);
+
+       return compact_length;
+    }
+
+    return -1;
+}
+} //end of namespace cuda
+#endif
+
 // --------------------------------------------------------------------------
 int teca_detect_nodes::detect_cyclones_unstructured(
+    int device_id,
     const_p_teca_cartesian_mesh mesh,
     SimpleGrid &grid,
     std::set<int> &set_candidates)
@@ -356,22 +873,31 @@ int teca_detect_nodes::detect_cyclones_unstructured(
        return -1;
     }
 
+    // get search_by array
+    const_p_teca_variant_array search_by =
+       mesh->get_point_arrays()->get(this->internals->str_search_by);
+
+    if (!search_by)
+    {
+       TECA_FATAL_ERROR("Dataset missing search_by variable \""
+           << this->internals->str_search_by << "\"")
+       return -1;
+    }
+
     VARIANT_ARRAY_DISPATCH_FP(y.get(),
 
-       DataArray1D<NT> vec_lat(y->size(), false);
        auto [sp_y, p_y] = get_host_accessible<CTT>(y);
+       DataArray1D<NT> vec_lat(y->size(), false);
        vec_lat.AttachToData((void*)p_y);
-
        for (long unsigned int j = 0; j < y->size(); ++j)
        {
           vec_lat[j] *= M_PI / 180.0;
        }
 
        assert_type<CTT>(x);
-       DataArray1D<NT> vec_lon(x->size(), false);
        auto [sp_x, p_x] = get_host_accessible<CTT>(x);
+       DataArray1D<NT> vec_lon(x->size(), false);
        vec_lon.AttachToData((void*)p_x);
-
        for (long unsigned int i = 0; i < x->size(); ++i)
        {
           vec_lon[i] *= M_PI / 180.0;
@@ -392,18 +918,110 @@ int teca_detect_nodes::detect_cyclones_unstructured(
               "is not supported")
           return -1;
        }
+
+#if defined(TECA_HAS_CUDA)
+       if (device_id >= 0)
+       {
+          // GPU
+          // No connectivity file; check for latitude/longitude dimension
+          if (this->in_connect == "")
+          {
+             int neighbors;
+             if (this->diag_connect)
+             {
+                neighbors = 8;
+             } else {
+                neighbors = 4;
+             }
+
+             p_teca_variant_array vecConnectivity = teca_variant_array_impl<NT>::New(
+                              y->size()*x->size()*neighbors, -1., allocator::cuda_async);
+             auto [p_vecConnectivity] = data<TT>(vecConnectivity);
+
+             // Generate connectivity
+             cuda_gpu::generate_rectilinear_connectivity(device_id, p_vecConnectivity,
+                              y->size(), x->size(), this->regional, this->diag_connect);
+
+             NESTED_VARIANT_ARRAY_DISPATCH_FP(search_by.get(), _SEARCH,
+
+                auto [sp_data_search, p_data_search] = get_cuda_accessible<CTT_SEARCH>(search_by);
+
+                p_teca_variant_array candidates = teca_variant_array_impl<NT_SEARCH>::New(
+                                 y->size()*x->size(), -1., allocator::cuda_async);
+                auto [p_candidates] = data<TT_SEARCH>(candidates);
+
+                int compact_length;
+                p_teca_variant_array candidates_compact = teca_variant_array_impl<NT_SEARCH>::New(
+                                 y->size()*x->size(), -1., allocator::cuda_async);
+                auto [p_candidates_compact] = data<TT_SEARCH>(candidates_compact);
+
+                // Tag all minima
+                //AnnounceStartBlock("FindAllLocalMinMax");
+                if (this->search_by_threshold == "")
+                {
+                   if (this->internals->f_search_by_minima)
+                      compact_length = cuda_gpu::find_all_local_minima(
+                                          device_id, p_vecConnectivity, p_data_search,
+                                          p_candidates, p_candidates_compact,
+                                          neighbors, y->size(), x->size());
+                   else
+                      compact_length = cuda_gpu::find_all_local_maxima(
+                                          device_id, p_vecConnectivity, p_data_search,
+                                          p_candidates, p_candidates_compact,
+                                          neighbors, y->size(), x->size());
+                } else {
+                   compact_length = cuda_gpu::find_all_local_minmax_with_threshold(
+                                          device_id, p_vecConnectivity, p_data_search,
+                                          p_candidates, p_candidates_compact,
+                                          neighbors, y->size(), x->size(),
+                                          this->internals->f_search_by_minima,
+                                          this->search_by_threshold);
+                }
+
+                if (compact_length < 0)
+                {
+                   TECA_ERROR("Failed to find all local min/max")
+                   return -1;
+                }
+
+                auto [sp_cand, p_cand] = get_host_accessible<TT_SEARCH>(candidates_compact);
+                sync_host_access_any(candidates_compact);
+                set_candidates.insert(p_cand, p_cand+(compact_length));
+             )
+          }
+       }
+       else
+       {
+#endif
+          NESTED_VARIANT_ARRAY_DISPATCH_FP(search_by.get(), _SEARCH,
+
+             // CPU
+             DataArray1D<NT_SEARCH> data_search(search_by->size(), false);
+             auto [sp_search_by, p_search_by] = get_host_accessible<CTT_SEARCH>(search_by);
+             data_search.AttachToData((void*)p_search_by);
+
+             // Tag all minima
+             //AnnounceStartBlock("FindAllLocalMinMax");
+             if (this->search_by_threshold == "")
+             {
+                if (this->internals->f_search_by_minima)
+                   FindAllLocalMinima<NT_SEARCH>(grid, data_search, set_candidates);
+                else
+                   FindAllLocalMaxima<NT_SEARCH>(grid, data_search, set_candidates);
+             } else {
+                FindAllLocalMinMaxWithThreshold<NT_SEARCH>(
+                                                 grid,
+                                                 data_search,
+                                                 this->internals->f_search_by_minima,
+                                                 this->search_by_threshold,
+                                                 set_candidates);
+             }
+             //AnnounceEndBlock("Done");
+          )
+#if defined(TECA_HAS_CUDA)
+       }
+#endif
     )
-
-    // get search_by array
-    const_p_teca_variant_array search_by =
-       mesh->get_point_arrays()->get(this->internals->str_search_by);
-
-    if (!search_by)
-    {
-       TECA_FATAL_ERROR("Dataset missing search_by variable \""
-           << this->internals->str_search_by << "\"")
-       return -1;
-    }
 
     int n_rejected_merge = 0;
     VARIANT_ARRAY_DISPATCH_FP(search_by.get(),
@@ -411,26 +1029,6 @@ int teca_detect_nodes::detect_cyclones_unstructured(
        DataArray1D<NT> data_search(search_by->size(), false);
        auto [sp_search_by, p_search_by] = get_host_accessible<CTT>(search_by);
        data_search.AttachToData((void*)p_search_by);
-
-       // Tag all minima
-       //AnnounceStartBlock("FindAllLocalMinMax");
-       if (this->search_by_threshold == "")
-       {
-          if (this->internals->f_search_by_minima)
-             FindAllLocalMinima<NT>(grid, data_search, set_candidates);
-          else
-             FindAllLocalMaxima<NT>(grid, data_search, set_candidates);
-       }
-       else
-       {
-          FindAllLocalMinMaxWithThreshold<NT>(
-                                              grid,
-                                              data_search,
-                                              this->internals->f_search_by_minima,
-                                              this->search_by_threshold,
-                                              set_candidates);
-       }
-       //AnnounceEndBlock("Done");
 
        // Eliminate based on merge distance
        //AnnounceStartBlock("Eliminate based on merge distance");
@@ -1119,12 +1717,6 @@ const_p_teca_dataset teca_detect_nodes::execute(
     const std::vector<const_p_teca_dataset> &input_data,
     const teca_metadata &req_in)
 {
-    if (this->get_verbose() > 1)
-    {
-       std::cerr << teca_parallel_id()
-            << "teca_detect_nodes::execute" << std::endl;
-    }
-
     (void)port;
     (void)req_in;
 
@@ -1132,6 +1724,25 @@ const_p_teca_dataset teca_detect_nodes::execute(
     {
        TECA_FATAL_ERROR("empty input")
        return nullptr;
+    }
+
+    // get the assigned GPU or CPU
+    int device_id = -1;
+    req_in.get("device_id", device_id);
+
+#if defined(TECA_HAS_CUDA)
+    if (device_id >= 0)
+    {
+       if (teca_cuda_util::set_device(device_id))
+           return nullptr;
+    }
+#endif
+
+    if (this->get_verbose() > 1)
+    {
+       std::cerr << teca_parallel_id()
+            << "teca_detect_nodes::execute "
+            << " device " << device_id << std::endl;
     }
 
     // get the input dataset
@@ -1142,7 +1753,6 @@ const_p_teca_dataset teca_detect_nodes::execute(
        TECA_FATAL_ERROR("teca_cartesian_mesh is required")
        return nullptr;
     }
-
 
     // get time step
     unsigned long time_step;
@@ -1164,7 +1774,7 @@ const_p_teca_dataset teca_detect_nodes::execute(
 
     SimpleGrid grid;
 
-    if (this->detect_cyclones_unstructured(mesh, grid, set_candidates))
+    if (this->detect_cyclones_unstructured(device_id, mesh, grid, set_candidates))
     {
        TECA_FATAL_ERROR("TC detector encountered an error")
        return nullptr;
