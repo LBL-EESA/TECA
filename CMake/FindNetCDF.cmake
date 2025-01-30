@@ -95,6 +95,7 @@ if (NOT NC_TMP_FOUND OR NOT NC_TMP_LINK_LIBRARIES OR NOT NC_TMP_LIBRARY_DIRS OR 
 endif()
 
 # look for header file that indicates MPI support
+set(NETCDF_INCLUDE_DIR ${NETCDF_INCLUDE_DIR} /usr/lib/x86_64-linux-gnu/netcdf/mpi/include)
 set(NETCDF_IS_PARALLEL FALSE)
 find_file(NETCDF_PAR_INCLUDE_DIR netcdf_par.h
     PATHS ${NETCDF_INCLUDE_DIR} NO_DEFAULT_PATH)
