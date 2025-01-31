@@ -30,7 +30,7 @@ batch script rather than in your shell.
 | :ref:`teca_temporal_reduction`         | Computes reductions (min, max, average,          |
 |                                        | summation) over the time dimension               |
 +----------------------------------------+--------------------------------------------------+
-| :ref:`teca_detect_stitch_nodes`        | TC detection using TempestExtremes               |
+| :ref:`teca_tempest_tc_detect`          | TC detection using TempestExtremes               |
 +----------------------------------------+--------------------------------------------------+
 | :ref:`teca_tc_detect`                  | TC detection using GFDL algorithm                |
 +----------------------------------------+--------------------------------------------------+
@@ -1561,9 +1561,9 @@ Command Line Arguments
     displays both basic and advanced documentation together
 
 
-.. _teca_detect_stitch_nodes:
+.. _teca_tempest_tc_detect:
 
-teca_detect_stitch_nodes
+teca_tempest_tc_detect
 ------------------------------
 The cyclone detecton algorithm is based on two TempestExtremes codes :cite:`tempestextremes`:
 DetectNodes and StitchNodes.
@@ -1840,14 +1840,14 @@ ERA5 data
     #SBATCH -N 1
     #SBATCH -n 64
     #SBATCH -t 00:30:00
-    #SBATCH -J teca_detect_stitch.out
+    #SBATCH -J teca_tempest_tc_detect.out
     #SBATCH --output=%x-%j.out
 
     # load the TECA module
     module use /global/common/software/m1517/teca/perlmutter_cpu/develop/modulefiles
     module load teca
 
-    srun -n 64 teca_detect_stitch_nodes \
+    srun -n 64 teca_tempest_tc_detect \
        --input_file era5_2017.mcf \
        --time_filter 6 \
        --sea_level_pressure MSL \

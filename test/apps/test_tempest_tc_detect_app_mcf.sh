@@ -2,7 +2,7 @@
 
 if [[ $# < 2 ]]
 then
-    echo "usage: test_detect_nodes_app_mcf.sh [app prefix] [data root] " \
+    echo "usage: test_tempest_tc_detect_app_mcf.sh [app prefix] [data root] " \
          "[mpi exec] [test cores] $#"
     exit -1
 fi
@@ -20,7 +20,7 @@ fi
 set -x
 
 # run the app
-${launcher} ${app_prefix}/teca_detect_stitch_nodes         \
+${launcher} ${app_prefix}/teca_tempest_tc_detect           \
     --input_file "${app_prefix}/../test/ERA5_TC_test.mcf"  \
     --sea_level_pressure MSL                               \
     --geopotential Z                                       \
@@ -41,5 +41,5 @@ ${app_prefix}/teca_table_diff                              \
     "${data_root}/test_te_candidates_app_ref.csv"          \
     test_te_candidates_app_output.csv
 
- clean up
+# clean up
 rm test_te_candidates_app_output.csv
