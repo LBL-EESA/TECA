@@ -34,15 +34,6 @@ using std::cerr;
 using std::endl;
 using std::cos;
 
-struct int_predicate
-{
-	__host__ __device__
-	bool operator()(const int x)
-	{
-		return x>=0;
-	}
-};
-
 // PIMPL idiom hides internals
 // defines the API for reduction operators
 class teca_detect_nodes::internals_t
@@ -352,6 +343,14 @@ bool satisfies_threshold(
 }
 
 #if defined(TECA_HAS_CUDA)
+struct int_predicate
+{
+    __host__ __device__
+    bool operator()(const int x)
+    {
+       return x>=0;
+    }
+};
 namespace cuda_gpu
 {
 // --------------------------------------------------------------------------
@@ -359,10 +358,10 @@ template <typename T>
 __global__
 void generate_rectilinear_connectivity(
      T *p_vecConnectivity,
-	  unsigned long nLat,
-	  unsigned long nLon,
-	  bool fRegional,
-	  bool fDiagonalConnectivity)
+     unsigned long nLat,
+     unsigned long nLon,
+     bool fRegional,
+     bool fDiagonalConnectivity)
 {
     unsigned long q = teca_cuda_util::thread_id_to_array_index();
 
