@@ -12,8 +12,6 @@
 #include <kdtree.h>
 #include "STLStringHelper.h"
 
-#include "cuCompactor.cuh"
-
 #include <iostream>
 #include <string>
 #include <set>
@@ -25,6 +23,7 @@
 
 #if defined(TECA_HAS_CUDA)
 #include "teca_cuda_util.h"
+#include "cuCompactor.cuh"
 #endif
 
 #define TECA_DEBUG 1
