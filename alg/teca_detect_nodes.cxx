@@ -16,6 +16,7 @@
 #include <string>
 #include <set>
 #include <queue>
+#include <mutex>
 
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
