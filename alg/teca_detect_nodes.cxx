@@ -16,6 +16,7 @@
 #include <string>
 #include <set>
 #include <queue>
+#include <mutex>
 
 #if defined(TECA_HAS_BOOST)
 #include <boost/program_options.hpp>
@@ -51,6 +52,9 @@ public:
 
 public:
     VariableRegistry varreg;
+
+    std::mutex m_mutex;
+    SimpleGrid grid;
 
     std::vector<ClosedContourOp> vec_closed_contour_op;
     std::vector<ClosedContourOp> vec_no_closed_contour_op;
@@ -885,40 +889,45 @@ int teca_detect_nodes::detect_cyclones_unstructured(
     }
 
     VARIANT_ARRAY_DISPATCH_FP(y.get(),
-
-       auto [sp_y, p_y] = get_host_accessible<CTT>(y);
-       DataArray1D<NT> vec_lat(y->size(), false);
-       vec_lat.AttachToData((void*)p_y);
-       for (long unsigned int j = 0; j < y->size(); ++j)
        {
-          vec_lat[j] *= M_PI / 180.0;
-       }
+          std::lock_guard<std::mutex> lock(this->internals->m_mutex);
+          // initialize grid on the first pass.
+          if (!grid.IsInitialized())
+          {
+             auto [sp_y, p_y] = get_host_accessible<CTT>(y);
+             DataArray1D<NT> vec_lat(y->size(), false);
+             vec_lat.AttachToData((void*)p_y);
+             for (long unsigned int j = 0; j < y->size(); ++j)
+             {
+                vec_lat[j] *= M_PI / 180.0;
+             }
 
-       assert_type<CTT>(x);
-       auto [sp_x, p_x] = get_host_accessible<CTT>(x);
-       DataArray1D<NT> vec_lon(x->size(), false);
-       vec_lon.AttachToData((void*)p_x);
-       for (long unsigned int i = 0; i < x->size(); ++i)
-       {
-          vec_lon[i] *= M_PI / 180.0;
-       }
+             assert_type<CTT>(x);
+             auto [sp_x, p_x] = get_host_accessible<CTT>(x);
+             DataArray1D<NT> vec_lon(x->size(), false);
+             vec_lon.AttachToData((void*)p_x);
+             for (long unsigned int i = 0; i < x->size(); ++i)
+             {
+                vec_lon[i] *= M_PI / 180.0;
+             }
 
-       // No connectivity file; check for latitude/longitude dimension
-       if (this->in_connect == "")
-       {
-          AnnounceStartBlock("Generating RLL grid data");
-          grid.GenerateLatitudeLongitude<NT>(
-                    vec_lat, vec_lon, this->regional, this->diag_connect, false);
-          AnnounceEndBlock("Done");
+             // No connectivity file; check for latitude/longitude dimension
+             if (this->in_connect == "")
+             {
+                AnnounceStartBlock("Generating RLL grid data");
+                grid.GenerateLatitudeLongitude<NT>(
+                          vec_lat, vec_lon, this->regional, this->diag_connect, false);
+                AnnounceEndBlock("Done");
+             }
+             // Check for connectivity file
+             else
+             {
+                TECA_ERROR("Loading grid data from connectivity file"
+                    " is not supported")
+                return -1;
+             }
+          }
        }
-       // Check for connectivity file
-       else
-       {
-          TECA_ERROR("Loading grid data from connectivity file"
-              "is not supported")
-          return -1;
-       }
-
 #if defined(TECA_HAS_CUDA)
        if (device_id >= 0)
        {
@@ -1772,9 +1781,7 @@ const_p_teca_dataset teca_detect_nodes::execute(
 
     std::set<int> set_candidates;
 
-    SimpleGrid grid;
-
-    if (this->detect_cyclones_unstructured(device_id, mesh, grid, set_candidates))
+    if (this->detect_cyclones_unstructured(device_id, mesh, this->internals->grid, set_candidates))
     {
        TECA_FATAL_ERROR("TC detector encountered an error")
        return nullptr;
@@ -1819,7 +1826,7 @@ const_p_teca_dataset teca_detect_nodes::execute(
           {
              ApplyNodeOutputOp<NT>(
                     this->internals->vec_output_op[outc],
-                    grid,
+                    this->internals->grid,
                     data_state,
                     *iter_candidate,
                     vec_output_value[i_candidate_ix][outc]);
@@ -1840,19 +1847,19 @@ const_p_teca_dataset teca_detect_nodes::execute(
     std::set<int>::const_iterator iter_candidate = set_candidates.begin();
     for (; iter_candidate != set_candidates.end(); ++iter_candidate)
     {
-       if (grid.m_nGridDim.size() == 1)
+       if (this->internals->grid.m_nGridDim.size() == 1)
        {
           i_array[i_candidate_ix] = *iter_candidate;
        }
-       else if (grid.m_nGridDim.size() == 2)
+       else if (this->internals->grid.m_nGridDim.size() == 2)
        {
           i_array[i_candidate_ix] =
-             (*iter_candidate) % static_cast<int>(grid.m_nGridDim[1]);
+             (*iter_candidate) % static_cast<int>(this->internals->grid.m_nGridDim[1]);
           j_array[i_candidate_ix] =
-             (*iter_candidate) / static_cast<int>(grid.m_nGridDim[1]);
+             (*iter_candidate) / static_cast<int>(this->internals->grid.m_nGridDim[1]);
        }
-       lat_array[i_candidate_ix] = grid.m_dLat[*iter_candidate] * 180.0 / M_PI;
-       lon_array[i_candidate_ix] = grid.m_dLon[*iter_candidate] * 180.0 / M_PI;
+       lat_array[i_candidate_ix] = this->internals->grid.m_dLat[*iter_candidate] * 180.0 / M_PI;
+       lon_array[i_candidate_ix] = this->internals->grid.m_dLon[*iter_candidate] * 180.0 / M_PI;
 
        i_candidate_ix++;
     }
@@ -1876,7 +1883,7 @@ const_p_teca_dataset teca_detect_nodes::execute(
        teca_variant_array_impl<int>::New(set_candidates.size(), i_array);
 
     out_table->append_column("i", i);
-    if (grid.m_nGridDim.size() == 2)
+    if (this->internals->grid.m_nGridDim.size() == 2)
     {
        p_teca_variant_array_impl<int> j =
           teca_variant_array_impl<int>::New(set_candidates.size(), j_array);
