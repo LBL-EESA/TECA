@@ -40,7 +40,7 @@ using std::cos;
 class teca_detect_nodes::internals_t
 {
 public:
-    internals_t() {} // : vecConnectivity(nullptr) {}
+    internals_t() : vecConnectivity(nullptr) {}
     ~internals_t() {}
 
     template<typename T>
@@ -55,7 +55,7 @@ public:
 
     std::mutex m_mutex;
     SimpleGrid grid;
-    //p_teca_variant_array vecConnectivity;
+    p_teca_variant_array vecConnectivity;
 
     std::vector<ClosedContourOp> vec_closed_contour_op;
     std::vector<ClosedContourOp> vec_no_closed_contour_op;
@@ -895,7 +895,6 @@ int teca_detect_nodes::detect_cyclones_unstructured(
           // initialize grid on the first pass.
           if (!grid.IsInitialized())
           {
-
              auto [sp_y, p_y] = get_host_accessible<CTT>(y);
              DataArray1D<NT> vec_lat(y->size(), false);
              vec_lat.AttachToData((void*)p_y);
@@ -916,10 +915,10 @@ int teca_detect_nodes::detect_cyclones_unstructured(
              // No connectivity file; check for latitude/longitude dimension
              if (this->in_connect == "")
              {
-                   AnnounceStartBlock("Generating RLL grid data");
-                   grid.GenerateLatitudeLongitude<NT>(
-                             vec_lat, vec_lon, this->regional, this->diag_connect, false);
-                   AnnounceEndBlock("Done");
+                AnnounceStartBlock("Generating RLL grid data");
+                grid.GenerateLatitudeLongitude<NT>(
+                          vec_lat, vec_lon, this->regional, this->diag_connect, false);
+                AnnounceEndBlock("Done");
              }
              // Check for connectivity file
              else
@@ -945,22 +944,21 @@ int teca_detect_nodes::detect_cyclones_unstructured(
                 neighbors = 4;
              }
 
-             //{
-                //std::lock_guard<std::mutex> lock(this->internals->m_mutex);
+             {
+                std::lock_guard<std::mutex> lock(this->internals->m_mutex);
                 // initialize grid on the first pass.
-                //if (this->internals->vecConnectivity)
-                //{
-                   //this->internals->vecConnectivity = teca_variant_array_impl<NT>::New(
-                   p_teca_variant_array vecConnectivity = teca_variant_array_impl<NT>::New(
+                if (this->internals->vecConnectivity == nullptr)
+                {
+                   this->internals->vecConnectivity = teca_variant_array_impl<NT>::New(
                                     y->size()*x->size()*neighbors, -1., allocator::cuda_async);
-                   auto [p_vecConnectivity] = data<TT>(vecConnectivity);
-                   //auto [p_vecConnectivity] = data<TT>(this->internals->vecConnectivity);
+                   auto [p_vecConnectivity] = data<TT>(this->internals->vecConnectivity);
 
                    // Generate connectivity
                    cuda_gpu::generate_rectilinear_connectivity(device_id, p_vecConnectivity,
                                     y->size(), x->size(), this->regional, this->diag_connect);
-                //}
-             //}
+                }
+             }
+             auto [p_vecConnectivity] = data<TT>(this->internals->vecConnectivity);
 
              NESTED_VARIANT_ARRAY_DISPATCH_FP(search_by.get(), _SEARCH,
 
@@ -1791,8 +1789,6 @@ const_p_teca_dataset teca_detect_nodes::execute(
     mesh->get_calendar(calendar);
 
     std::set<int> set_candidates;
-
-//    SimpleGrid grid;
 
     if (this->detect_cyclones_unstructured(device_id, mesh, this->internals->grid, set_candidates))
     {
