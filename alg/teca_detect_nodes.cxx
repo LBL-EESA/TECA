@@ -40,7 +40,7 @@ using std::cos;
 class teca_detect_nodes::internals_t
 {
 public:
-    internals_t() {}
+    internals_t() : vecConnectivity(nullptr) {}
     ~internals_t() {}
 
     template<typename T>
@@ -55,6 +55,7 @@ public:
 
     std::mutex m_mutex;
     SimpleGrid grid;
+    p_teca_variant_array vecConnectivity;
 
     std::vector<ClosedContourOp> vec_closed_contour_op;
     std::vector<ClosedContourOp> vec_no_closed_contour_op;
@@ -943,13 +944,21 @@ int teca_detect_nodes::detect_cyclones_unstructured(
                 neighbors = 4;
              }
 
-             p_teca_variant_array vecConnectivity = teca_variant_array_impl<NT>::New(
-                              y->size()*x->size()*neighbors, -1., allocator::cuda_async);
-             auto [p_vecConnectivity] = data<TT>(vecConnectivity);
+             {
+                std::lock_guard<std::mutex> lock(this->internals->m_mutex);
+                // initialize grid on the first pass.
+                if (this->internals->vecConnectivity == nullptr)
+                {
+                   this->internals->vecConnectivity = teca_variant_array_impl<NT>::New(
+                                 y->size()*x->size()*neighbors, -1., allocator::cuda_async);
+                   auto [p_vecConnectivity] = data<TT>(this->internals->vecConnectivity);
 
-             // Generate connectivity
-             cuda_gpu::generate_rectilinear_connectivity(device_id, p_vecConnectivity,
-                              y->size(), x->size(), this->regional, this->diag_connect);
+                   // Generate connectivity
+                   cuda_gpu::generate_rectilinear_connectivity(device_id, p_vecConnectivity,
+                                 y->size(), x->size(), this->regional, this->diag_connect);
+                }
+             }
+             auto [p_vecConnectivity] = data<TT>(this->internals->vecConnectivity);
 
              NESTED_VARIANT_ARRAY_DISPATCH_FP(search_by.get(), _SEARCH,
 
