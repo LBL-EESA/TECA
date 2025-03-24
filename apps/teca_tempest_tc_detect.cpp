@@ -127,21 +127,18 @@ int main(int argc, char **argv)
             " These arguments are as follows."
             " op is the operator that must be satisfied for threshold (options include >,>=,<,<=,=,!=)."
             " value is the value on the right-hand-side of the comparison.\n")
-        ("min_lon", value<double>()->default_value(0.0),
+        ("min_lon", value<double>()->default_value(1.0),
             "\nMinimum longitude in degrees for detection\n")
         ("max_lon", value<double>()->default_value(0.0),
             "\nMaximum longitude in degrees for detection"
             " As longitude is a periodic dimension,"
             " when --regional is not specified --min_lon may be larger than --max_lon."
             " If --max_lon and --min_lon are equal then these arguments are ignored.\n")
-        ("min_lat", value<double>()->default_value(0.0),
+        ("min_lat", value<double>()->default_value(1.0),
             "\nMinimum latitude in degrees for detection\n")
         ("max_lat", value<double>()->default_value(0.0),
             "\nMaximum latitude in degrees for detection"
             " If --max_lat and --min_lat are equal then these arguments are ignored.\n")
-        ("min_abs_lat", value<double>()->default_value(0.0),
-            "\nMinimum absolute value of latitude in degrees for detection"
-            " This argument has no effect if set to zero.\n")
         ("merge_dist", value<double>()->default_value(6.0),
             "\nMinimum allowable distance between two candidates in degrees."
             " Candidate points with a distance (in degrees great-circle-distance)"
@@ -225,6 +222,8 @@ int main(int argc, char **argv)
             "\nfirst time step to process\n")
         ("last_step", value<long>()->default_value(-1),
             "\nlast time step to process\n")
+        ("time_filter", value<long>()->default_value(1),
+            "\nstride to process time steps at\n")
         ("n_threads", value<int>()->default_value(-1),
             "\nSets the thread pool size on each MPI rank."
             " When the default value of -1 is used TECA will coordinate the thread"
@@ -276,7 +275,7 @@ int main(int argc, char **argv)
     thickness->set_derived_variable("thickness");
     surf_wind->set_component_0_variable("VAR_10U");
     surf_wind->set_component_1_variable("VAR_10V");
-    surf_wind->set_l2_norm_variable("surface_wind");
+    surf_wind->set_l2_norm_variable("surface_wind_speed");
 
     cf_reader->get_properties_description("cf_reader", advanced_opt_defs);
     mcf_reader->get_properties_description("mcf_reader", advanced_opt_defs);
@@ -408,90 +407,96 @@ int main(int argc, char **argv)
           candidates->set_search_by_min(opt_vals["sea_level_pressure"].as<string>());
     }
 
+    //thickness calculation
+    if (opt_vals["geopotential"].as<string>() == "")
+    {
+       if (opt_vals["300mb_height"].as<string>() == "")
+       {
+          TECA_FATAL_ERROR("Missing name of variable with 300mb height"
+                " or with geopotential for thickness calc")
+       }
+       else
+       {
+          thickness->set_dependent_variable(1, opt_vals["300mb_height"].as<string>());
+       }
+       if (opt_vals["500mb_height"].as<string>() == "")
+       {
+          TECA_FATAL_ERROR("Missing name of variable with 500mb height"
+                " or with geopotential for thickness calc")
+       }
+       else
+       {
+          thickness->set_dependent_variable(0, opt_vals["500mb_height"].as<string>());
+       }
+    }
+    else
+    {
+       teca_metadata md = sim_coords->update_metadata();
+       teca_metadata coords;
+       md.get("coordinates", coords);
+       const_p_teca_variant_array x = coords.get("x");
+       const_p_teca_variant_array y = coords.get("y");
+       double bounds[6] = {0.0};
+       md.get("bounds", bounds, 6);
+
+       //slice variables at pressure level of 300mb
+       regrid_src_1->set_bounds({bounds[0], bounds[1], bounds[2], bounds[3], 300, 300, 0, 0});
+       regrid_src_1->set_whole_extents({0lu, x->size() - 1lu, 0lu, y->size() - 1lu, 0lu, 0lu, 0lu, 0lu});
+       regrid_src_1->set_t_axis_variable(md);
+       regrid_src_1->set_t_axis(md);
+
+       regrid_1->set_interpolation_mode_linear();
+       regrid_1->set_input_connection(0, regrid_src_1->get_output_port());
+       regrid_1->set_input_connection(1, sim_coords->get_output_port());
+
+       rename_1->set_original_variable_names({opt_vals["geopotential"].as<string>()});
+       rename_1->set_new_variable_names({"Z300"});
+       rename_1->set_input_connection(regrid_1->get_output_port());
+
+       //slice variables at pressure level of 500mb
+       regrid_src_2->set_bounds({bounds[0], bounds[1], bounds[2], bounds[3], 500, 500, 0, 0});
+       regrid_src_2->set_whole_extents({0lu, x->size() - 1lu, 0lu, y->size() - 1lu, 0lu, 0lu, 0lu, 0lu});
+       regrid_src_2->set_t_axis_variable(md);
+       regrid_src_2->set_t_axis(md);
+
+       regrid_2->set_interpolation_mode_linear();
+       regrid_2->set_input_connection(0, regrid_src_2->get_output_port());
+       regrid_2->set_input_connection(1, sim_coords->get_output_port());
+
+       rename_2->set_original_variable_names({opt_vals["geopotential"].as<string>()});
+       rename_2->set_new_variable_names({"Z500"});
+       rename_2->set_input_connection(regrid_2->get_output_port());
+
+       //join the two new meshes
+       join->set_number_of_input_connections(2);
+       join->set_input_connection(0, rename_1->get_output_port());
+       join->set_input_connection(1, rename_2->get_output_port());
+       head = join;
+    }
+    size_t n_var = thickness->get_number_of_dependent_variables();
+    if (n_var != 2)
+    {
+       TECA_FATAL_ERROR("thickness calculation requires 2 "
+             "variables. given " << n_var)
+       return -1;
+    }
+    thickness->set_execute_callback(point_wise_difference(thickness->get_dependent_variable(0),
+                                                          thickness->get_dependent_variable(1),
+                                                          thickness->get_derived_variable(0)));
+
     if (!opt_vals["closed_contour_cmd"].defaulted())
     {
        candidates->set_closed_contour_cmd(opt_vals["closed_contour_cmd"].as<string>());
     }
     else
     {
-       if (opt_vals["geopotential"].as<string>() == "")
-       {
-          if (opt_vals["300mb_height"].as<string>() == "")
-          {
-             TECA_FATAL_ERROR("Missing name of variable with 500mb height"
-                   " or with geopotential for thickness calc")
-          }
-          else
-          {
-             thickness->set_dependent_variable(1, opt_vals["300mb_height"].as<string>());
-          }
-          if (opt_vals["500mb_height"].as<string>() == "")
-          {
-             TECA_FATAL_ERROR("Missing name of variable with 300mb height"
-                   " or with geopotential for thickness calc")
-          }
-          else
-          {
-             thickness->set_dependent_variable(0, opt_vals["500mb_height"].as<string>());
-          }
-       }
+       if (opt_vals["sea_level_pressure"].as<string>() == "")
+          TECA_FATAL_ERROR("Missing name of variable with sea level pressure")
        else
        {
-          teca_metadata md = sim_coords->update_metadata();
-          teca_metadata coords;
-          md.get("coordinates", coords);
-          const_p_teca_variant_array x = coords.get("x");
-          const_p_teca_variant_array y = coords.get("y");
-          double bounds[6] = {0.0};
-          md.get("bounds", bounds, 6);
-
-          //slice variables at pressure level of 300mb
-          regrid_src_1->set_bounds({bounds[0], bounds[1], bounds[2], bounds[3], 300, 300, 0, 0});
-          regrid_src_1->set_whole_extents({0lu, x->size() - 1lu, 0lu, y->size() - 1lu, 0lu, 0lu, 0lu, 0lu});
-          regrid_src_1->set_t_axis_variable(md);
-          regrid_src_1->set_t_axis(md);
-
-          regrid_1->set_interpolation_mode_linear();
-          regrid_1->set_input_connection(0, regrid_src_1->get_output_port());
-          regrid_1->set_input_connection(1, sim_coords->get_output_port());
-
-          rename_1->set_original_variable_names({opt_vals["geopotential"].as<string>()});
-          rename_1->set_new_variable_names({"Z300"});
-          rename_1->set_input_connection(regrid_1->get_output_port());
-
-          //slice variables at pressure level of 500mb
-          regrid_src_2->set_bounds({bounds[0], bounds[1], bounds[2], bounds[3], 500, 500, 0, 0});
-          regrid_src_2->set_whole_extents({0lu, x->size() - 1lu, 0lu, y->size() - 1lu, 0lu, 0lu, 0lu, 0lu});
-          regrid_src_2->set_t_axis_variable(md);
-          regrid_src_2->set_t_axis(md);
-
-          regrid_2->set_interpolation_mode_linear();
-          regrid_2->set_input_connection(0, regrid_src_2->get_output_port());
-          regrid_2->set_input_connection(1, sim_coords->get_output_port());
-
-          rename_2->set_original_variable_names({opt_vals["geopotential"].as<string>()});
-          rename_2->set_new_variable_names({"Z500"});
-          rename_2->set_input_connection(regrid_2->get_output_port());
-
-          //join the two new meshes
-          join->set_number_of_input_connections(2);
-          join->set_input_connection(0, rename_1->get_output_port());
-          join->set_input_connection(1, rename_2->get_output_port());
-          head = join;
+          std::string text = opt_vals["sea_level_pressure"].as<string>()+",200.0,5.5,0;"+thickness->get_derived_variable(0)+",-58.8,6.5,1.0";
+          candidates->set_closed_contour_cmd(text);
        }
-
-       size_t n_var = thickness->get_number_of_dependent_variables();
-       if (n_var != 2)
-       {
-          TECA_FATAL_ERROR("thickness calculation requires 2 "
-                "variables. given " << n_var)
-          return -1;
-       }
-       thickness->set_execute_callback(point_wise_difference(thickness->get_dependent_variable(0),
-                                                             thickness->get_dependent_variable(1),
-                                                             thickness->get_derived_variable(0)));
-       std::string text = opt_vals["sea_level_pressure"].as<string>()+",200.0,5.5,0;"+thickness->get_derived_variable(0)+",-6.0,6.5,1.0";
-       candidates->set_closed_contour_cmd(text);
     }
 
     if (!opt_vals["no_closed_contour_cmd"].defaulted())
@@ -504,21 +509,25 @@ int main(int argc, char **argv)
        candidates->set_candidate_threshold_cmd(opt_vals["candidate_threshold_cmd"].as<string>());
     }
 
+    //surface wind speed calculation
+    if (opt_vals["surface_wind_u"].as<string>() == "")
+       TECA_FATAL_ERROR("Missing name of variable with surface wind x-component")
+    else
+       surf_wind->set_component_0_variable(opt_vals["surface_wind_u"].as<string>());
+
+    if (opt_vals["surface_wind_v"].as<string>() == "")
+       TECA_FATAL_ERROR("Missing name of variable with surface wind y-component")
+    else
+       surf_wind->set_component_1_variable(opt_vals["surface_wind_v"].as<string>());
+
     if (!opt_vals["output_cmd"].defaulted())
     {
        candidates->set_output_cmd(opt_vals["output_cmd"].as<string>());
     }
     else
     {
-       if (opt_vals["surface_wind_u"].as<string>() == "")
-          TECA_FATAL_ERROR("Missing name of variable with surface wind x-component")
-       else
-          surf_wind->set_component_0_variable(opt_vals["surface_wind_u"].as<string>());
-
-       if (opt_vals["surface_wind_v"].as<string>() == "")
-          TECA_FATAL_ERROR("Missing name of variable with surface wind y-component")
-       else
-          surf_wind->set_component_1_variable(opt_vals["surface_wind_v"].as<string>());
+       if (opt_vals["sea_level_pressure"].as<string>() == "")
+          TECA_FATAL_ERROR("Missing name of variable with sea level pressure")
 
        if (opt_vals["geopotential_at_surface"].as<string>() == "")
           TECA_FATAL_ERROR("Missing name of variable with geopotential at the surface")
@@ -526,12 +535,19 @@ int main(int argc, char **argv)
        std::string text = opt_vals["sea_level_pressure"].as<string>()+",min,0;"+surf_wind->get_l2_norm_variable()+",max,2;"+opt_vals["geopotential_at_surface"].as<string>()+",min,0";
        candidates->set_output_cmd(text);
     }
+
     if (!opt_vals["in_fmt"].defaulted())
     {
        tracks->set_in_fmt(opt_vals["in_fmt"].as<string>());
     }
     else
     {
+       if (opt_vals["sea_level_pressure"].as<string>() == "")
+          TECA_FATAL_ERROR("Missing name of variable with sea level pressure")
+
+       if (opt_vals["geopotential_at_surface"].as<string>() == "")
+          TECA_FATAL_ERROR("Missing name of variable with geopotential at the surface")
+
        std::string text = "i,j,lat,lon,"+opt_vals["sea_level_pressure"].as<string>()+","+surf_wind->get_l2_norm_variable()+","+opt_vals["geopotential_at_surface"].as<string>();
        tracks->set_in_fmt(text);
     }
@@ -561,11 +577,6 @@ int main(int argc, char **argv)
        candidates->set_max_lat(opt_vals["max_lat"].as<double>());
     }
 
-    if (!opt_vals["min_abs_lat"].defaulted())
-    {
-       candidates->set_min_abs_lat(opt_vals["min_abs_lat"].as<double>());
-    }
-
     if (!opt_vals["merge_dist"].defaulted())
     {
        candidates->set_merge_dist(opt_vals["merge_dist"].as<double>());
@@ -593,6 +604,9 @@ int main(int argc, char **argv)
 
     if (!opt_vals["last_step"].defaulted())
         map_reduce->set_end_index(opt_vals["last_step"].as<long>());
+
+    if (!opt_vals["time_filter"].defaulted())
+        map_reduce->set_stride(opt_vals["time_filter"].as<long>());
 
     if (!opt_vals["n_threads"].defaulted())
         map_reduce->set_thread_pool_size(opt_vals["n_threads"].as<int>());
@@ -625,8 +639,13 @@ int main(int argc, char **argv)
     }
     else
     {
-       std::string text = surf_wind->get_l2_norm_variable()+",>=,10.0,10;lat,<=,50.0,10;lat,>=,-50.0,10;"+opt_vals["geopotential_at_surface"].as<string>()+",<=,15.0,10";
-       tracks->set_track_threshold_cmd(text);
+       if (opt_vals["geopotential_at_surface"].as<string>() == "")
+          TECA_FATAL_ERROR("Missing name of variable with geopotential at the surface")
+       else
+       {
+          std::string text = surf_wind->get_l2_norm_variable()+",>=,10.0,10;lat,<=,50.0,10;lat,>=,-50.0,10;"+opt_vals["geopotential_at_surface"].as<string>()+",<=,15.0,10";
+          tracks->set_track_threshold_cmd(text);
+       }
     }
 
     if (!opt_vals["prioritize"].defaulted())

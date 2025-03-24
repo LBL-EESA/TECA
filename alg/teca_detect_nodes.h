@@ -171,6 +171,12 @@ public:
 protected:
     teca_detect_nodes();
 
+    // helper that computes the output extent
+    int get_active_extent(
+        const const_p_teca_variant_array &lat,
+        const const_p_teca_variant_array &lon,
+        std::vector<unsigned long> &extent) const;
+
 private:
     int detect_cyclones_unstructured(
         int device_id,

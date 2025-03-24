@@ -376,6 +376,32 @@ void generate_rectilinear_connectivity(
     unsigned long i = q % nLon; //lon index
     unsigned long j = q / nLon; //lat index
 
+    /*
+    Neighbors for a given position X (i,j)
+    ++---nLon----+      ++---nLon----+
+    n|     n     |      n|   n n n   |
+    L|   n X n   |  or  L|   n X n   |
+    a|     n     |      a|   n n n   |
+    t|           |      t|           |
+    ++-----------+      ++-----------+
+
+    For neighbors=0,1,2,3 (fDiagonalConnectivity=false)
+    ++---nLon----+  +---nLon----+  +---nLon----+  +---nLon----+
+    n| n0 n0  n0 |  | n1 n1  n1 |  | n2 n2  n2 |  | n3 n3  n3 |
+    L| n0 n0  n0 |  | n1 n1  n1 |  | n2 n2  n2 |  | n3 n3  n3 |
+    a| n0 n0  n0 |  | n1 n1  n1 |  | n2 n2  n2 |  | n3 n3  n3 |
+    t| n0 n0  n0 |  | n1 n1  n1 |  | n2 n2  n2 |  | n3 n3  n3 |
+    ++-----------+  +-----------+  +-----------+  +-----------+
+      neighbors=0    neighbors=1    neighbors=2    neighbors=3
+                                 |
+                                 v
+                       p_vecConnectivity array
+    +-----nLon*nLat-----++----nLon*nLat----++----nLon*nLat----++-----nLon*nLat----+
+    | n0 n0 n0 n0 ... n0 n1 n1 n1 n1 ... n1 n2 n2 n2 n2 ... n2 n3 n3 n3 n3 ... n3 |
+    +-------------------++-----------------++-----------------++------------------+
+     neighbors=0          neighbors=1        neighbors=2        neighbors=3
+    */
+
     int neighbors = 0;
 
     // Connectivity in eight directions
@@ -1155,83 +1181,6 @@ int teca_detect_nodes::detect_cyclones_unstructured(
        //AnnounceEndBlock("Done");
     )
 
-    // Eliminate based on interval
-    //AnnounceStartBlock("Eliminate based on interval");
-    int n_rejected_location = 0;
-    if ((this->min_lat != this->max_lat) ||
-        (this->min_lon != this->max_lon) ||
-	     (this->min_abs_lat != 0.0))
-    {
-       std::set<int> set_new_candidates;
-
-       std::set<int>::const_iterator iter_candidate = set_candidates.begin();
-       for (; iter_candidate != set_candidates.end(); ++iter_candidate)
-       {
-          double d_lat = grid.m_dLat[*iter_candidate];
-          double d_lon = grid.m_dLon[*iter_candidate];
-
-          if (this->min_lat != this->max_lat)
-          {
-             if (d_lat < this->min_lat)
-             {
-                n_rejected_location++;
-                continue;
-             }
-             if (d_lat > this->max_lat)
-             {
-                n_rejected_location++;
-                continue;
-             }
-          }
-          if (this->min_lon != this->max_lon)
-          {
-             if (d_lon < 0.0)
-             {
-                int i_lon_shift = static_cast<int>(d_lon / (2.0 * M_PI));
-                d_lon += static_cast<double>(i_lon_shift + 1) * 2.0 * M_PI;
-             }
-             if (d_lon >= 2.0 * M_PI)
-             {
-                int i_lon_shift = static_cast<int>(d_lon / (2.0 * M_PI));
-                d_lon -= static_cast<double>(i_lon_shift - 1) * 2.0 * M_PI;
-             }
-             if (this->min_lon < this->max_lon)
-             {
-                if (d_lon < this->min_lon)
-                {
-                   n_rejected_location++;
-                   continue;
-                }
-                if (d_lon > this->max_lon)
-                {
-                   n_rejected_location++;
-                   continue;
-                }
-             }
-             else
-             {
-                if ((d_lon > this->max_lon) &&
-                    (d_lon < this->min_lon))
-                {
-                   n_rejected_location++;
-                   continue;
-                }
-             }
-          }
-          if (this->min_abs_lat != 0.0)
-          {
-             if (fabs(d_lat) < this->min_abs_lat)
-             {
-                n_rejected_location++;
-                continue;
-             }
-          }
-          set_new_candidates.insert(*iter_candidate);
-       }
-       set_candidates = set_new_candidates;
-    }
-    //AnnounceEndBlock("Done");
-
     // Eliminate based on thresholds
     //AnnounceStartBlock("Eliminate based on thresholds");
     DataArray1D<int> vec_rejected_threshold(
@@ -1400,7 +1349,6 @@ int teca_detect_nodes::detect_cyclones_unstructured(
     //AnnounceEndBlock("Done");
 
     Announce("Total candidates: %i", set_candidates.size());
-    Announce("Rejected (  location): %i", n_rejected_location);
     Announce("Rejected (    merged): %i", n_rejected_merge);
 
     for (long unsigned int tc = 0; tc < vec_rejected_threshold.GetRows(); ++tc)
@@ -1440,11 +1388,10 @@ teca_detect_nodes::teca_detect_nodes() :
     candidate_threshold_cmd(""),
     output_cmd(""),
     search_by_threshold(""),
-    min_lon(0.0),
+    min_lon(1.0),
     max_lon(0.0),
-    min_lat(0.0),
+    min_lat(1.0),
     max_lat(0.0),
-    min_abs_lat(0.0),
     merge_dist(6.0),
     diag_connect(false),
     regional(true),
@@ -1495,8 +1442,6 @@ void teca_detect_nodes::get_properties_description(
             "Minimum latitude in degrees for detection")
         TECA_POPTS_GET(double, prefix, max_lat,
             "Maximum latitude in degrees for detection")
-        TECA_POPTS_GET(double, prefix, min_abs_lat,
-            "Minimum absolute value of latitude in degrees for detection")
         TECA_POPTS_GET(double, prefix, merge_dist,
             "Minimum allowable distance between two candidates in degrees")
         TECA_POPTS_GET(bool, prefix, diag_connect,
@@ -1530,7 +1475,6 @@ void teca_detect_nodes::set_properties(
     TECA_POPTS_SET(opts, double, prefix, max_lon)
     TECA_POPTS_SET(opts, double, prefix, min_lat)
     TECA_POPTS_SET(opts, double, prefix, max_lat)
-    TECA_POPTS_SET(opts, double, prefix, min_abs_lat)
     TECA_POPTS_SET(opts, double, prefix, merge_dist)
     TECA_POPTS_SET(opts, bool, prefix, diag_connect)
     TECA_POPTS_SET(opts, bool, prefix, regional)
@@ -1643,11 +1587,85 @@ int teca_detect_nodes::initialize()
 
     this->internals->dependent_variables = std::move(dep_vars);
 
-    this->min_lon *= M_PI / 180.0;
-    this->max_lon *= M_PI / 180.0;
-    this->min_lat *= M_PI / 180.0;
-    this->max_lat *= M_PI / 180.0;
-    this->min_abs_lat *= M_PI / 180.0;
+    return 0;
+}
+
+// --------------------------------------------------------------------------
+int teca_detect_nodes::get_active_extent(
+    const const_p_teca_variant_array &lat,
+    const const_p_teca_variant_array &lon,
+    std::vector<unsigned long> &extent) const
+{
+    extent = {1, 0, 1, 0, 0, 0};
+
+    unsigned long high_i = lon->size() - 1;
+    if (this->min_lon > this->max_lon)
+    {
+        extent[0] = 0l;
+        extent[1] = high_i;
+    }
+    else
+    {
+        VARIANT_ARRAY_DISPATCH_FP(lon.get(),
+
+            auto [sp_lon, p_lon] = get_host_accessible<CTT>(lon);
+
+            sync_host_access_any(lon);
+
+            if (teca_coordinate_util::index_of(p_lon, 0, high_i,
+                  static_cast<NT>(this->min_lon), false, extent[0]) ||
+                teca_coordinate_util::index_of(p_lon, 0, high_i,
+                  static_cast<NT>(this->max_lon), true, extent[1]))
+            {
+                TECA_ERROR(
+                   << "requested longitude ["
+                   << this->min_lon << ", " << this->max_lon << ", "
+                   << "] is not contained in the current dataset bounds ["
+                   << p_lon[0] << ", " << p_lon[high_i] << "]")
+                return -1;
+            }
+        )
+    }
+    if (extent[0] > extent[1])
+    {
+        TECA_ERROR("invalid longitude coordinate array type")
+        return -1;
+    }
+
+    unsigned long high_j = lat->size() - 1;
+    if (this->min_lat > this->max_lat)
+    {
+        extent[2] = 0l;
+        extent[3] = high_j;
+    }
+    else
+    {
+        VARIANT_ARRAY_DISPATCH_FP(lat.get(),
+
+            auto [sp_lat, p_lat] = get_host_accessible<CTT>(lat);
+
+            sync_host_access_any(lat);
+
+            if (teca_coordinate_util::index_of(p_lat, 0, high_j,
+                  static_cast<NT>(this->min_lat), false, extent[2]) ||
+                teca_coordinate_util::index_of(p_lat, 0, high_j,
+                  static_cast<NT>(this->max_lat), true, extent[3]))
+            {
+                TECA_ERROR(
+                   << "requested latitude ["
+                   << this->min_lat << ", " << this->max_lat
+                   << "] is not contained in the current dataset bounds ["
+                   << p_lat[0] << ", " << p_lat[high_j] << "]")
+                return -1;
+            }
+        )
+
+    }
+    if (extent[2] > extent[3])
+    {
+        TECA_ERROR("invalid latitude coordinate array type")
+        return -1;
+    }
 
     return 0;
 }
@@ -1678,26 +1696,16 @@ std::vector<teca_metadata> teca_detect_nodes::get_upstream_request(
        return up_reqs;
     }
 
-    p_teca_variant_array in_x, in_y, in_z;
+    p_teca_variant_array in_x, in_y;
     if (!(in_x = coords.get("x")) ||
-        !(in_y = coords.get("y")) ||
-        !(in_z = coords.get("z")))
+        !(in_y = coords.get("y")))
     {
        TECA_FATAL_ERROR("metadata missing coordinate arrays")
        return up_reqs;
     }
 
-    unsigned long extent[6] = {0};
-    double req_bounds[6] = {0.0};
-    req_bounds[0] = this->min_lon * 180.0 / M_PI;
-    req_bounds[1] = this->max_lon * 180.0 / M_PI;
-    req_bounds[2] = this->min_lat * 180.0 / M_PI;
-    req_bounds[3] = this->max_lat * 180.0 / M_PI;
-
-    if (teca_coordinate_util::bounds_to_extent(req_bounds,
-            in_x, in_y, in_z, extent) ||
-        teca_coordinate_util::validate_extent(in_x->size(),
-            in_y->size(), in_z->size(), extent, true))
+    std::vector<unsigned long> extent(6, 0l);
+    if (this->get_active_extent(in_y, in_x, extent))
     {
        TECA_FATAL_ERROR("failed to determine the active extent")
        return up_reqs;
