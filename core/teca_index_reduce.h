@@ -107,6 +107,13 @@ public:
     TECA_ALGORITHM_PROPERTY(long, end_index)
     ///@}
 
+    /** @name stride
+     * set the stride to process time steps at. The default is 1
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(long, stride)
+    ///@}
+
 protected:
     teca_index_reduce();
 
@@ -210,6 +217,7 @@ private:
     std::vector<std::string> arrays;
     long start_index;
     long end_index;
+    long stride;
 };
 
 #endif

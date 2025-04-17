@@ -130,7 +130,7 @@ void block_decompose(MPI_Comm comm, unsigned long n_indices, unsigned long n_ran
 // --------------------------------------------------------------------------
 teca_index_reduce::teca_index_reduce() :
     extent{0,-1,0,0,0,0}, bounds{0.,-1.,0.,0.,0.,0.}, arrays{},
-    start_index(0), end_index(-1)
+    start_index(0), end_index(-1), stride(1)
 {
     this->set_stream_size(2);
 }
@@ -157,6 +157,7 @@ void teca_index_reduce::get_properties_description(const std::string &prefix,
         TECA_POPTS_GET(long, prefix, start_index, "first index to process")
         TECA_POPTS_GET(long, prefix, end_index, "last index to process. "
             "If set to -1 all indices are processed.")
+        TECA_POPTS_GET(long, prefix, stride, "stride to process time steps at")
         ;
 
     global_opts.add(opts);
@@ -175,6 +176,7 @@ void teca_index_reduce::set_properties(const std::string &prefix,
     TECA_POPTS_SET(opts, std::vector<std::string>, prefix, arrays)
     TECA_POPTS_SET(opts, long, prefix, start_index)
     TECA_POPTS_SET(opts, long, prefix, end_index)
+    TECA_POPTS_SET(opts, long, prefix, stride)
 }
 #endif
 
@@ -332,13 +334,16 @@ std::vector<teca_metadata> teca_index_reduce::get_upstream_request(
     for (unsigned long i = 0; i < block_size; ++i)
     {
         unsigned long index = i + block_start + first;
-        unsigned long n_reqs = base_req.size();
-        for (unsigned long j = 0; j < n_reqs; ++j)
+        if ((index % this->stride) == 0)
         {
-            teca_metadata tmp(base_req[j]);
-            tmp.set(request_key, {index, index});
-            tmp.set("index_request_key", request_key);
-            up_req.emplace_back(std::move(tmp));
+            unsigned long n_reqs = base_req.size();
+            for (unsigned long j = 0; j < n_reqs; ++j)
+            {
+                teca_metadata tmp(base_req[j]);
+                tmp.set(request_key, {index, index});
+                tmp.set("index_request_key", request_key);
+                up_req.emplace_back(std::move(tmp));
+            }
         }
     }
 
