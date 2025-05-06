@@ -1566,7 +1566,7 @@ Command Line Arguments
 teca_tempest_tc_detect
 ------------------------------
 The cyclone detecton algorithm is based on two TempestExtremes codes :cite:`tempestextremes`:
-DetectNodes and StitchNodes.
+DetectNodes and StitchNodes. It can be executed in parallel on CPUs and GPUs.
 More details about the use of the application can ben found `here`_.
 
 .. _here: https://github.com/LBL-EESA/TECA/blob/0c7ce365f3d2ec7be8d382a8eae760e3753e21f3/doc/presentations/tempest_tc_detect_03042025.pdf
