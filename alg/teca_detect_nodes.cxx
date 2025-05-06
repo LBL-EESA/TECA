@@ -24,7 +24,7 @@
 
 #if defined(TECA_HAS_CUDA)
 #include "teca_cuda_util.h"
-#include "cuCompactor.cuh"
+//#include "cuCompactor.cuh"
 #endif
 
 #define TECA_DEBUG 1
@@ -348,20 +348,23 @@ bool satisfies_threshold(
 }
 
 #if defined(TECA_HAS_CUDA)
-struct int_predicate
-{
-   __host__ __device__
-   bool operator()(const int x)
-   {
-      return x>=0;
-   }
-};
+// We can't include cuCompactor in TECA currently due to licensing conflicts.
+// cuCompactor uses an LGPL license, and TECA doesn’t yet have an open-source license.
+// Once TECA adopts an open-source license, it will be possible to include the code.
+//struct int_predicate
+//{
+//   __host__ __device__
+//   bool operator()(const int x)
+//   {
+//      return x>=0;
+//   }
+//};
 namespace cuda_gpu
 {
 // --------------------------------------------------------------------------
 template <typename T>
 __global__
-void generate_rectilinear_connectivity(
+void generate_rectilinear_connectivity_gpu(
      T *p_vecConnectivity,
      unsigned long nLat,
      unsigned long nLon,
@@ -510,7 +513,7 @@ void generate_rectilinear_connectivity(
 // --------------------------------------------------------------------------
 template <typename T, typename T_SEARCH>
 __global__
-void find_all_local_minima(
+void find_all_local_minima_gpu(
      T *p_vecConnectivity,
      const T_SEARCH *p_data,
      T_SEARCH *p_setMinima,
@@ -545,7 +548,7 @@ void find_all_local_minima(
 // --------------------------------------------------------------------------
 template <typename T, typename T_SEARCH>
 __global__
-void find_all_local_maxima(
+void find_all_local_maxima_gpu(
      T *p_vecConnectivity,
      const T_SEARCH *p_data,
      T_SEARCH *p_setMaxima,
@@ -580,7 +583,7 @@ void find_all_local_maxima(
 // --------------------------------------------------------------------------
 template <typename T, typename T_SEARCH>
 __global__
-void find_all_local_minmax_with_threshold(
+void find_all_local_minmax_with_threshold_gpu(
      T *p_vecConnectivity,
      const T_SEARCH *p_data,
      T_SEARCH *p_setMinima,
@@ -668,7 +671,7 @@ void find_all_local_minmax_with_threshold(
 }
 // --------------------------------------------------------------------------
 template <typename T>
-int generate_rectilinear_connectivity(
+int generate_rectilinear_connectivity_gpu(
     int device_id,
     T *p_vecConnectivity,
     unsigned long nLat,
@@ -689,11 +692,11 @@ int generate_rectilinear_connectivity(
     }
 
     cudaError_t ierr = cudaSuccess;
-    generate_rectilinear_connectivity<<<block_grid,thread_grid>>>(p_vecConnectivity,
+    generate_rectilinear_connectivity_gpu<<<block_grid,thread_grid>>>(p_vecConnectivity,
                                         nLat, nLon, fRegional, fDiagonalConnectivity);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
-        TECA_ERROR("Failed to launch the generate_rectilinear_connectivity CUDA kernel: "
+        TECA_ERROR("Failed to launch the generate_rectilinear_connectivity_gpu CUDA kernel: "
             << cudaGetErrorString(ierr))
         return -1;
     }
@@ -702,7 +705,7 @@ int generate_rectilinear_connectivity(
 }
 // --------------------------------------------------------------------------
 template <typename T, typename T_SEARCH>
-int find_all_local_minima(
+int find_all_local_minima_gpu(
     int device_id,
     T *p_vecConnectivity,
     const T_SEARCH *p_data,
@@ -725,23 +728,27 @@ int find_all_local_minima(
     }
 
     cudaError_t ierr = cudaSuccess;
-    find_all_local_minima<<<block_grid,thread_grid>>>(p_vecConnectivity, p_data,
+    find_all_local_minima_gpu<<<block_grid,thread_grid>>>(p_vecConnectivity, p_data,
                                             p_setMinima, sNeighbors, nLat, nLon);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
-        TECA_ERROR("Failed to launch the find_all_local_minima CUDA kernel: "
+        TECA_ERROR("Failed to launch the find_all_local_minima_gpu CUDA kernel: "
             << cudaGetErrorString(ierr))
         return -1;
     }
 
-    int compact_length = cuCompactor::compact<T_SEARCH>(p_setMinima, p_setMinimaCompact,
-                                         nLat*nLon, int_predicate(), thread_grid.x);
+    // We can't include cuCompactor in TECA currently due to licensing conflicts.
+    // cuCompactor uses an LGPL license, and TECA doesn’t yet have an open-source license.
+    // Once TECA adopts an open-source license, it will be possible to include the code.
+    //int compact_length = cuCompactor::compact<T_SEARCH>(p_setMinima, p_setMinimaCompact,
+    //                                     nLat*nLon, int_predicate(), thread_grid.x);
 
-    return compact_length;
+    //return compact_length;
+    return 0;
 }
 // --------------------------------------------------------------------------
 template <typename T, typename T_SEARCH>
-int find_all_local_maxima(
+int find_all_local_maxima_gpu(
     int device_id,
     T *p_vecConnectivity,
     const T_SEARCH *p_data,
@@ -764,23 +771,27 @@ int find_all_local_maxima(
     }
 
     cudaError_t ierr = cudaSuccess;
-    find_all_local_maxima<<<block_grid,thread_grid>>>(p_vecConnectivity, p_data,
+    find_all_local_maxima_gpu<<<block_grid,thread_grid>>>(p_vecConnectivity, p_data,
                                             p_setMaxima, sNeighbors, nLat, nLon);
     if ((ierr = cudaGetLastError()) != cudaSuccess)
     {
-        TECA_ERROR("Failed to launch the find_all_local_maxima CUDA kernel: "
+        TECA_ERROR("Failed to launch the find_all_local_maxima_gpu CUDA kernel: "
             << cudaGetErrorString(ierr))
         return -1;
     }
 
-    int compact_length = cuCompactor::compact<T_SEARCH>(p_setMaxima, p_setMaximaCompact,
-                                         nLat*nLon, int_predicate(), thread_grid.x);
+    // We can't include cuCompactor in TECA currently due to licensing conflicts.
+    // cuCompactor uses an LGPL license, and TECA doesn’t yet have an open-source license.
+    // Once TECA adopts an open-source license, it will be possible to include the code.
+    //int compact_length = cuCompactor::compact<T_SEARCH>(p_setMaxima, p_setMaximaCompact,
+    //                                     nLat*nLon, int_predicate(), thread_grid.x);
 
-    return compact_length;
+    //return compact_length;
+    return 0;
 }
 // --------------------------------------------------------------------------
 template <typename T, typename T_SEARCH>
-int find_all_local_minmax_with_threshold(
+int find_all_local_minmax_with_threshold_gpu(
     int device_id,
     T *p_vecConnectivity,
     const T_SEARCH *p_data,
@@ -865,21 +876,25 @@ int find_all_local_minmax_with_threshold(
        }
 
        cudaError_t ierr = cudaSuccess;
-       find_all_local_minmax_with_threshold<<<block_grid,thread_grid>>>(p_vecConnectivity,
+       find_all_local_minmax_with_threshold_gpu<<<block_grid,thread_grid>>>(p_vecConnectivity,
                                               p_data, p_setMinima, sNeighbors, nLat, nLon,
                                               fMinima, opThreshold, dThresholdValue);
        if ((ierr = cudaGetLastError()) != cudaSuccess)
        {
            TECA_ERROR("Failed to launch the "
-               << "find_all_local_minmax_with_threshold CUDA kernel: "
+               << "find_all_local_minmax_with_threshold_gpu CUDA kernel: "
                << cudaGetErrorString(ierr))
            return -1;
        }
 
-       int compact_length = cuCompactor::compact<T_SEARCH>(p_setMinima, p_setMinimaCompact,
-                                         nLat*nLon, int_predicate(), thread_grid.x);
+       // We can't include cuCompactor in TECA currently due to licensing conflicts.
+       // cuCompactor uses an LGPL license, and TECA doesn’t yet have an open-source license.
+       // Once TECA adopts an open-source license, it will be possible to include the code.
+       //int compact_length = cuCompactor::compact<T_SEARCH>(p_setMinima, p_setMinimaCompact,
+       //                                  nLat*nLon, int_predicate(), thread_grid.x);
 
-       return compact_length;
+       //return compact_length;
+       return 0;
     }
 
     return -1;
@@ -980,7 +995,7 @@ int teca_detect_nodes::detect_cyclones_unstructured(
                    auto [p_vecConnectivity] = data<TT>(this->internals->vecConnectivity);
 
                    // Generate connectivity
-                   cuda_gpu::generate_rectilinear_connectivity(device_id, p_vecConnectivity,
+                   cuda_gpu::generate_rectilinear_connectivity_gpu(device_id, p_vecConnectivity,
                                  y->size(), x->size(), this->regional, this->diag_connect);
                 }
              }
@@ -1004,17 +1019,17 @@ int teca_detect_nodes::detect_cyclones_unstructured(
                 if (this->search_by_threshold == "")
                 {
                    if (this->internals->f_search_by_minima)
-                      compact_length = cuda_gpu::find_all_local_minima(
+                      compact_length = cuda_gpu::find_all_local_minima_gpu(
                                           device_id, p_vecConnectivity, p_data_search,
                                           p_candidates, p_candidates_compact,
                                           neighbors, y->size(), x->size());
                    else
-                      compact_length = cuda_gpu::find_all_local_maxima(
+                      compact_length = cuda_gpu::find_all_local_maxima_gpu(
                                           device_id, p_vecConnectivity, p_data_search,
                                           p_candidates, p_candidates_compact,
                                           neighbors, y->size(), x->size());
                 } else {
-                   compact_length = cuda_gpu::find_all_local_minmax_with_threshold(
+                   compact_length = cuda_gpu::find_all_local_minmax_with_threshold_gpu(
                                           device_id, p_vecConnectivity, p_data_search,
                                           p_candidates, p_candidates_compact,
                                           neighbors, y->size(), x->size(),
@@ -1028,9 +1043,17 @@ int teca_detect_nodes::detect_cyclones_unstructured(
                    return -1;
                 }
 
-                auto [sp_cand, p_cand] = get_host_accessible<TT_SEARCH>(candidates_compact);
-                sync_host_access_any(candidates_compact);
-                set_candidates.insert(p_cand, p_cand+(compact_length));
+                // We can't include cuCompactor in TECA currently due to licensing conflicts.
+                // cuCompactor uses an LGPL license, and TECA doesn’t yet have an open-source license.
+                // Once TECA adopts an open-source license, it will be possible to include the code.
+                //auto [sp_cand, p_cand] = get_host_accessible<TT_SEARCH>(candidates_compact);
+                //sync_host_access_any(candidates_compact);
+                //set_candidates.insert(p_cand, p_cand+(compact_length));
+
+                auto [sp_cand, p_cand] = get_host_accessible<TT_SEARCH>(candidates);
+                sync_host_access_any(candidates);
+                set_candidates.insert(p_cand, p_cand+candidates->size());
+                set_candidates.erase(-1);
              )
           }
        }
