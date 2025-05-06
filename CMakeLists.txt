@@ -145,6 +145,7 @@ set(REQUIRE_SHAPELIB FALSE CACHE BOOL "Forces build failure when shapelib is mis
 set(REQUIRE_PARAVIEW FALSE CACHE BOOL "Forces build failure when ParaView is missing")
 set(REQUIRE_VTK FALSE CACHE BOOL "Forces build failure when VTK is missing")
 set(REQUIRE_TECA_DATA ${BUILD_TESTING} CACHE BOOL "Forces build failure when TECA_data is missing")
+set(REQUIRE_TELITE TRUE CACHE BOOL "Forces build failure when TELite is missing")
 
 # locate dependencies
 #configure for CUDA
