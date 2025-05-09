@@ -113,7 +113,7 @@ using namespace teca_variant_array_util;
 // -------------------------------------/-------------------------------------
 int teca_cf_layout_manager::create(const std::string &file_name,
     const std::string &date_format, const teca_metadata &md_in,
-    int mode_flags, int use_unlimited_dim)
+    int mode_flags, int use_unlimited_dim, int stride)
 {
     if (this->file_id < 0 || this->first_index < 0 || this->n_indices < 0)
     {
@@ -201,7 +201,29 @@ int teca_cf_layout_manager::create(const std::string &file_name,
     // re-construct the time axis
     if (t)
     {
-        this->t = t->new_copy(this->first_index, n_indices);
+        if (stride == 1)
+        {
+           this->t = t->new_copy(this->first_index, n_indices);
+        }
+        else
+        {
+           VARIANT_ARRAY_DISPATCH(t.get(),
+              auto [spt, pt] = get_host_accessible<TT>(t);
+
+              this->t = teca_variant_array_impl<NT>::New(n_indices/stride, 0);
+              auto [pti] = data<TT>(this->t);
+
+              unsigned int j = 0;
+              for (unsigned int i = this->first_index; i < n_indices; ++i)
+              {
+                 if ((i % stride) == 0)
+                 {
+                    pti[j] = pt[i];
+                    j++;
+                 }
+              }
+           )
+        }
     }
 
     return 0;
@@ -959,7 +981,8 @@ int teca_cf_layout_manager::write(long index,
 int teca_cf_layout_manager::write(const unsigned long extent[6],
     const unsigned long temporal_extent[2],
     const const_p_teca_array_collection &point_arrays,
-    const const_p_teca_array_collection &info_arrays)
+    const const_p_teca_array_collection &info_arrays,
+    int stride)
 {
     if (!this->opened())
     {
@@ -989,7 +1012,7 @@ int teca_cf_layout_manager::write(const unsigned long extent[6],
         size_t counts[4] = {0, 0, 0, 0};
 
         // get this data's position in the file
-        starts[0] = active_extent[0] - this->first_index;
+        starts[0] = (active_extent[0] - this->first_index) / stride;
         counts[0] = active_extent[1] - active_extent[0] + 1;
 
         for (unsigned int i = 0; i < n_arrays; ++i)
@@ -1076,7 +1099,7 @@ int teca_cf_layout_manager::write(const unsigned long extent[6],
         size_t counts[2] = {0, 0};
 
         // get this data's position in the file
-        starts[0] = active_extent[0] - this->first_index;
+        starts[0] = (active_extent[0] - this->first_index) / stride;
         counts[0] = active_extent[1] - active_extent[0] + 1;
 
         for (unsigned int i = 0; i < n_arrays; ++i)
