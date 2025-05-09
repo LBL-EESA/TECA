@@ -355,6 +355,8 @@ public:
     TECA_ALGORITHM_PROPERTY(int, index_executive_compatability)
     ///@}
 
+    TECA_ALGORITHM_PROPERTY(int, stride)
+
 protected:
     teca_cf_writer();
 
@@ -401,6 +403,7 @@ private:
     int compression_level;
     int flush_files;
     int move_variables_to_root;
+    int stride;
 
     std::vector<std::string> point_arrays;
     std::vector<std::string> information_arrays;
