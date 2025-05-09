@@ -105,6 +105,7 @@ int main(int argc, char **argv)
         ("last_step", value<long>(), "\nlast time step to process\n")
         ("start_date", value<std::string>(), "\nfirst time to proces in YYYY-MM-DD hh:mm:ss format\n")
         ("end_date", value<std::string>(), "\nfirst time to proces in YYYY-MM-DD hh:mm:ss format\n")
+        ("stride", value<int>()->default_value(1), "\nstride to process time steps at\n")
         ("n_threads", value<int>(), "\nSets the thread pool size on each MPI rank. A value of -1"
             " will coordinate across MPI ranks such that each thread is bound to a unique physical"
             " core.\n")
@@ -246,6 +247,9 @@ int main(int argc, char **argv)
 
     if (opt_vals.count("last_step"))
         cf_writer->set_last_step(opt_vals["last_step"].as<long>());
+
+    if (!opt_vals["stride"].defaulted())
+        cf_writer->set_stride(opt_vals["stride"].as<int>());
 
     std::vector<double> bounds;
     bool have_bounds = opt_vals.count("bounds");
