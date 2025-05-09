@@ -51,7 +51,7 @@ teca_cf_writer::teca_cf_writer() :
     index_executive_compatability(0), steps_per_file(128),
     mode_flags(NC_CLOBBER|NC_NETCDF4), use_unlimited_dim(0),
     collective_buffer(-1), compression_level(-1), flush_files(0),
-    move_variables_to_root(0)
+    move_variables_to_root(0), stride(1)
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -144,6 +144,8 @@ void teca_cf_writer::get_properties_description(
             "if set files are flushed before they are closed.")
         TECA_POPTS_GET(int, prefix, move_variables_to_root,
             "do not create groups; move variables to root instead." )
+        TECA_POPTS_GET(int, prefix, stride,
+            "stride to process time steps at" )
         TECA_POPTS_MULTI_GET(std::vector<std::string>, prefix, point_arrays,
             "the list of point centered arrays to write")
         TECA_POPTS_MULTI_GET(std::vector<std::string>, prefix, information_arrays,
@@ -183,6 +185,7 @@ void teca_cf_writer::set_properties(
     TECA_POPTS_SET(opts, int, prefix, compression_level)
     TECA_POPTS_SET(opts, int, prefix, flush_files)
     TECA_POPTS_SET(opts, int, prefix, move_variables_to_root)
+    TECA_POPTS_SET(opts, int, prefix, stride)
     TECA_POPTS_SET(opts, std::vector<std::string>, prefix, point_arrays)
     TECA_POPTS_SET(opts, std::vector<std::string>, prefix, information_arrays)
 }
@@ -606,7 +609,7 @@ std::vector<teca_metadata> teca_cf_writer::get_upstream_request(
             // the upstream requests are all queued up. Before issuing them
             // intialize file specific book keeping structure
             if (layout_mgr->create(this->file_name, this->date_format, md_in,
-                this->mode_flags, this->use_unlimited_dim))
+                this->mode_flags, this->use_unlimited_dim, this->stride))
             {
                 TECA_FATAL_ERROR("Failed to create file " << file_id)
                 return -1;
@@ -740,39 +743,42 @@ const_p_teca_dataset teca_cf_writer::execute(unsigned int port,
             return nullptr;
         }
 
-        // get the layout managers needed to write this extent
-        std::vector<p_teca_cf_layout_manager> managers;
-        if (this->internals->mapper->get_layout_manager(temporal_extent, managers))
+        if ((temporal_extent[0] % this->stride) == 0)
         {
-            TECA_FATAL_ERROR("No layout manager found for temporal extent ["
-                << temporal_extent << "]")
-            return nullptr;
-        }
+           // get the layout managers needed to write this extent
+           std::vector<p_teca_cf_layout_manager> managers;
+           if (this->internals->mapper->get_layout_manager(temporal_extent, managers))
+           {
+               TECA_FATAL_ERROR("No layout manager found for temporal extent ["
+                   << temporal_extent << "]")
+               return nullptr;
+           }
 
-        // give each manager a chance to write the steps it is responsble for
-        int n_managers = managers.size();
-        for (int j = 0; j < n_managers; ++j)
-        {
-            const p_teca_cf_layout_manager &layout_mgr = managers[j];
+           // give each manager a chance to write the steps it is responsble for
+           int n_managers = managers.size();
+           for (int j = 0; j < n_managers; ++j)
+           {
+               const p_teca_cf_layout_manager &layout_mgr = managers[j];
 
-            // write the arrays
-            if (layout_mgr->write(extent, temporal_extent,
-                in_mesh->get_point_arrays(), in_mesh->get_information_arrays()))
-            {
-                TECA_FATAL_ERROR("Manager " << j << " of " << n_managers
-                    << " failed to write temporal extent [" << temporal_extent
-                    << "]")
-                return nullptr;
-            }
+               // write the arrays
+               if (layout_mgr->write(extent, temporal_extent,
+                   in_mesh->get_point_arrays(), in_mesh->get_information_arrays(), this->stride))
+               {
+                   TECA_FATAL_ERROR("Manager " << j << " of " << n_managers
+                       << " failed to write temporal extent [" << temporal_extent
+                       << "]")
+                   return nullptr;
+               }
 
-            if (this->verbose > 1)
-            {
-                std::ostringstream oss;
-                oss << "Wrote: extent = [" << extent << "], temporal_extent = ["
-                    << temporal_extent << "].";
-                //layout_mgr->to_stream(oss);
-                TECA_STATUS(<< oss.str())
-            }
+               if (this->verbose > 1)
+               {
+                   std::ostringstream oss;
+                   oss << "Wrote: extent = [" << extent << "], temporal_extent = ["
+                       << temporal_extent << "].";
+                   //layout_mgr->to_stream(oss);
+                   TECA_STATUS(<< oss.str())
+               }
+           }
         }
     }
 
