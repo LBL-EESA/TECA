@@ -34,7 +34,7 @@ public:
 
     /// creates the NetCDF file. This is an MPI collective call.
     int create(const std::string &file_name, const std::string &date_format,
-        const teca_metadata &md_in, int mode_flags, int use_unlimited_dim);
+        const teca_metadata &md_in, int mode_flags, int use_unlimited_dim, int stride);
 
     /** defines the NetCDF file layout. This is an MPI collective call. The
      * metadata object must contain global view of coordinates, whole_extent,
@@ -82,7 +82,8 @@ public:
     int write(const unsigned long extent[6],
         const unsigned long temporal_extent[2],
         const const_p_teca_array_collection &point_arrays,
-        const const_p_teca_array_collection &info_arrays);
+        const const_p_teca_array_collection &info_arrays,
+        int stride);
 
     // close the file. This is an MPI collective call.
     int close()  { return this->handle.close(); }
