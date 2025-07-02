@@ -5,12 +5,20 @@
 version: 2
 
 build:
-  os: "ubuntu-20.04"
+  os: "ubuntu-lts-latest"
   tools:
-    python: "3"
+    python: "miniconda-latest"
+  jobs:
+    pre_build:
+      - mkdir -p ${READTHEDOCS_OUTPUT}/html/doxygen
+      - cd doc/rtd && doxygen
+      - cd doc/rtd && python3 parse_xml.py
 
 sphinx:
   configuration: doc/rtd/conf.py
+
+conda:
+  environment: doc/rtd/environment.yml
 
 python:
   install:

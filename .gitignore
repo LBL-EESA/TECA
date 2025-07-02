@@ -5,3 +5,4 @@ _build
 *.vscode*
 .DS_Store
 generated_rtd*
+_readthedocs/

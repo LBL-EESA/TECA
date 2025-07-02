@@ -229,51 +229,51 @@ class TECA_Tree(object):
 
         for key, value in trunk.items():
 
-            try:
-                if key == 'files':
-                    continue
+            if key == 'files':
+                continue
 
-                page_name = self.meta_info[key]['full_name']
+            if key not in self.meta_info:
+                print(f"Warning: No meta info for key '{key}', skipping.")
+                print("Available keys are:", list(self.meta_info.keys()))
+                continue
+            page_name = self.meta_info[key]['full_name']
 
-                rst = ''
-                rst += '\n.. _' + page_name + ':\n'
-                rst += '\n' + page_name + '\n'
-                rst += '~' * len(page_name) + '\n\n'
-                rst += self.meta_info[key]['description'] + '. '
-                rst += '(For more details, click on the class name) \n\n'
+            rst = ''
+            rst += '\n.. _' + page_name + ':\n'
+            rst += '\n' + page_name + '\n'
+            rst += '~' * len(page_name) + '\n\n'
+            rst += self.meta_info[key]['description'] + '. '
+            rst += '(For more details, click on the class name) \n\n'
 
-                rst += '.. csv-table:: TECA Classes\n'
-                rst += '   :header: "Class", "Description"\n'
-                rst += '   :widths: 5, 30\n\n'
+            rst += '.. csv-table:: TECA Classes\n'
+            rst += '   :header: "Class", "Description"\n'
+            rst += '   :widths: 20, 30\n\n'
 
-                for _, refid, _ in value['files']:
-                    node = self.nodes[refid]
+            for _, refid, _ in value['files']:
+                node = self.nodes[refid]
 
-                    rst += '   ' + node.name + '_ , '
+                rst += '   ' + node.name + '_ , '
 
-                    if (node.brief_description and
-                            not node.brief_description.isspace()):
-                        rst += node.brief_description.strip()
-
-                    rst += '\n'
+                if (node.brief_description and
+                        not node.brief_description.isspace()):
+                    rst += node.brief_description.strip()
 
                 rst += '\n'
-                for _, refid, _ in value['files']:
-                    node = self.nodes[refid]
 
-                    rst += '.. _' + node.name + ': doxygen/' + node.refid + '.html\n'
+            rst += '\n'
+            for _, refid, _ in value['files']:
+                node = self.nodes[refid]
 
-                filename = 'generated_rtd_%s.rst' % key
-                with open(os.path.join(output_dir, filename), 'w') as f:
-                    f.write(rst)
+                rst += '.. _' + node.name + ': doxygen/' + node.refid + '.html\n'
 
-                generated_files.append(
-                    (filename, self.meta_info[key]['full_name']))
+            filename = 'generated_rtd_%s.rst' % key
+            output_path = os.path.join(output_dir, filename)
+            with open(output_path, 'w') as f:
+                f.write(rst)
+            print(f"Generated {output_path}")
 
-            except Exception:
-                sys.stderr.write('Exception caught in parse_xml.py !\n')
-                traceback.print_exc()
-                sys.stderr.write('Exception ignored !\n')
+            generated_files.append(
+                (filename, self.meta_info[key]['full_name']))
 
         rst = '\n\n.. toctree::\n   :maxdepth: 1\n   :caption: Contents:\n\n'
 
@@ -351,22 +351,30 @@ class TECA_Tree(object):
             children = []
             for child_element in self.node_xml_root.findall(
                     'derivedcompoundref'):
-                try:
-                    if 'refid' in child_element.attrib:
-                        child = nodes[child_element.get('refid')]
-                        children.append(child)
-                except Exception:
-                   sys.stderr.write('Exception caught in parse_xml.py !\n')
-                   traceback.print_exc()
-                   sys.stderr.write('Exception ignored !\n')
-
+                if 'refid' in child_element.attrib:
+                    if child_element.get('refid') not in nodes:
+                        print(f"Warning: Child {child_element.get('refid')} "
+                              f"not found in nodes, skipping.")
+                        continue
+                    child = nodes[child_element.get('refid')]
+                    children.append(child)
+                
             self.children = children
 
             self.found_family = True
 
 
 def main():
-    teca_tree = TECA_Tree()
+    import os
+    # set the output directory
+    if 'READTHEDOCS_OUTPUT' in os.environ:
+        output_dir = f"{os.environ['READTHEDOCS_OUTPUT']}/xml"
+    else:
+        output_dir = '_build/xml'
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    teca_tree = TECA_Tree(xml_dir=output_dir)
 
 
 if __name__ == '__main__':
