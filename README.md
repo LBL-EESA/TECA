@@ -3,7 +3,7 @@
 <img src="https://raw.githubusercontent.com/LBL-EESA/TECA/8ea6a121c8c29cdab31be4226b0564c9ee5a9726/doc/rtd/images/teca_logo_crop2_lg.png" width="400px">
 </td></tr>
 </table>
-<a href="https://travis-ci.com/LBL-EESA/TECA"><img src="https://travis-ci.com/LBL-EESA/TECA.svg?token=zV3LhFtYvjcvo67W2uji&branch=master"></a>
+<a href="https://travis-ci.org/LBL-EESA/TECA"><img src="https://travis-ci.org/LBL-EESA/TECA.svg?token=zV3LhFtYvjcvo67W2uji&branch=master"></a>
 <a href="https://teca.readthedocs.io/en/latest/?badge=latest"><img src="https://readthedocs.org/projects/teca/badge/?version=latest"></a>
 <a href="https://badge.fury.io/py/teca"><img src="https://badge.fury.io/py/teca.svg" alt="PyPI version"></a>
 <a href="https://doi.org/10.5281/zenodo.6640287"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.6640287.svg" alt="DOI"></a>
