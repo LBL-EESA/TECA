@@ -1,3 +1,0 @@
-sphinx<7
-sphinxcontrib-bibtex
-breathe

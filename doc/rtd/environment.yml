@@ -1,0 +1,10 @@
+name: teca-docs
+dependencies:
+  - python=3
+  - graphviz
+  - sphinx<7
+  - sphinxcontrib-bibtex
+  - sphinx_rtd_theme
+  - breathe
+channels:
+  - conda-forge

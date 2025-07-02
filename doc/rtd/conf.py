@@ -31,24 +31,12 @@ except:
     os.environ['READTHEDOCS_OUTPUT'] = '_build'
     odir = os.environ['READTHEDOCS_OUTPUT']
 
-if not os.path.exists(odir + '/html'):
-    os.makedirs(odir + '/html')
+# make sure build directories exist
+for d in [f"{odir}/html", f"{odir}/xml", f"{odir}/rst"]:
+    os.makedirs(d, exist_ok=True)
 
 subprocess.call('cat /etc/issue', shell=True)
 subprocess.call('doxygen --version', shell=True)
-
-# RTD version of Doxygen has a bug that crashes it on our code due to a fixed
-# buffer size. When RTD updates to Ubuntu 20.04 this will be resolved. See
-# issue 613
-resolved_613 = True
-if resolved_613:
-    subprocess.call('doxygen', shell=True)
-    subprocess.call('./parse_xml.py', shell=True)
-    subprocess.call('ls -lah $READTHEDOCS_OUTPUT', shell=True)
-    subprocess.call('ls -lah $READTHEDOCS_OUTPUT/html', shell=True)
-else:
-    subprocess.call('svn checkout svn://svn.code.sf.net/p/teca/rtd_extras/doxygen _build/html/doxygen', shell=True)
-    subprocess.call('svn checkout svn://svn.code.sf.net/p/teca/rtd_extras/rst _build/rst', shell=True)
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -61,7 +49,7 @@ bibtex_bibfiles = ['bibliography.bib']
 
 # Configuring Breathe
 breathe_projects = {
-    "TECA": "_build/xml"
+    "TECA": f"{odir}/xml"
 }
 breathe_default_project = "TECA"
 
@@ -74,7 +62,7 @@ master_doc = 'index'
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = [odir, 'Thumbs.db', '.DS_Store']
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -100,3 +88,6 @@ html_js_files = [
     ]
 
 numfig = True
+
+# Add any paths that contain extra files to copy to the output directory
+html_extra_path = ['doxygen']
