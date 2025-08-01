@@ -55,6 +55,8 @@
 #include "teca_valid_value_mask.h"
 #include "teca_vertical_reduction.h"
 #include "teca_vorticity.h"
+#include "teca_detect_nodes.h"
+#include "teca_stitch_nodes.h"
 
 #include "teca_py_object.h"
 #include "teca_py_gil_state.h"
@@ -575,3 +577,19 @@ struct teca_tc_saffir_simpson
 %shared_ptr(teca_surface_integral)
 %ignore teca_surface_integral::operator=;
 %include "teca_surface_integral.h"
+
+/***************************************************************************
+ detect_nodes
+ ***************************************************************************/
+%ignore teca_detect_nodes::shared_from_this;
+%shared_ptr(teca_detect_nodes)
+%ignore teca_detect_nodes::operator=;
+%include "teca_detect_nodes.h"
+
+/***************************************************************************
+ stitch_nodes
+ ***************************************************************************/
+%ignore teca_stitch_nodes::shared_from_this;
+%shared_ptr(teca_stitch_nodes)
+%ignore teca_stitch_nodes::operator=;
+%include "teca_stitch_nodes.h"
