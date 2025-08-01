@@ -18,6 +18,7 @@ set(teca_alg_cxx_srcs
     teca_cartesian_mesh_source.cxx
     teca_cartesian_mesh_subset.cxx
     teca_cartesian_mesh_regrid.cxx
+    teca_mesh_join.cxx
     teca_connected_components.cxx
     teca_2d_component_area.cxx
     teca_component_area_filter.cxx
@@ -65,7 +66,10 @@ set(teca_alg_cxx_srcs
     teca_vorticity.cxx
     teca_dataset_diff.cxx
     teca_temporal_reduction.cxx
+    teca_detect_nodes.cxx
+    teca_stitch_nodes.cxx
     )
+
 
 set(teca_alg_cuda_srcs)
 if (TECA_HAS_CUDA)
@@ -105,6 +109,10 @@ set(teca_alg_link pthread)
 if (TECA_HAS_BOOST)
     include_directories(SYSTEM ${Boost_INCLUDE_DIR})
     list(APPEND teca_alg_link ${Boost_LIBRARIES})
+endif()
+
+if (TECA_HAS_TELITE)
+    list(APPEND teca_alg_link TELite)
 endif()
 
 if (TECA_HAS_CUDA)

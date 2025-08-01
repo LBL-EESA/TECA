@@ -145,6 +145,7 @@ set(REQUIRE_SHAPELIB FALSE CACHE BOOL "Forces build failure when shapelib is mis
 set(REQUIRE_PARAVIEW FALSE CACHE BOOL "Forces build failure when ParaView is missing")
 set(REQUIRE_VTK FALSE CACHE BOOL "Forces build failure when VTK is missing")
 set(REQUIRE_TECA_DATA ${BUILD_TESTING} CACHE BOOL "Forces build failure when TECA_data is missing")
+set(REQUIRE_TELITE TRUE CACHE BOOL "Forces build failure when TELite is missing")
 
 # locate dependencies
 #configure for CUDA
@@ -280,6 +281,19 @@ if (NOT TECA_HAS_PARAVIEW)
     endif()
 endif()
 set(TECA_HAS_VTK ${tmp} CACHE BOOL "VTK features")
+
+# configure for TELite
+set(tmp OFF)
+find_package(TELite QUIET)
+if (TELite_FOUND AND ((DEFINED TECA_HAS_TELITE AND TECA_HAS_TELITE) OR (NOT DEFINED TECA_HAS_TELITE)))
+    message(STATUS "TELite features -- enabled")
+    set(tmp ON)
+elseif (REQUIRE_TELITE)
+    message(FATAL_ERROR "TELite features -- required but not found. set TELite_DIR to enable.")
+else()
+    message(STATUS "TELite features -- not found. set TELite_DIR to enable.")
+endif()
+set(TECA_HAS_TELITE ${tmp} CACHE BOOL "TELite features")
 
 #configure for Boost
 set(tmp OFF)
