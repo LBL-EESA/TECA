@@ -71,3 +71,6 @@ teca_add_python_app(teca_potential_intensity
 
 teca_add_python_app(teca_lapse_rate)
 teca_add_python_app(teca_spectral_filter FEATURES ${TECA_HAS_NETCDF})
+
+teca_add_python_app(teca_blocking_event_detect_blobs FEATURES ${TECA_HAS_NETCDF})
+teca_add_python_app(teca_blocking_event_stitch_blobs FEATURES ${TECA_HAS_NETCDF})
