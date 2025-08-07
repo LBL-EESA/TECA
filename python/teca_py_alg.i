@@ -27,6 +27,7 @@
 #include "teca_laplacian.h"
 #include "teca_latitude_damper.h"
 #include "teca_mask.h"
+#include "teca_mesh_join.h"
 #include "teca_normalize_coordinates.h"
 #include "teca_spatial_executive.h"
 #include "teca_regional_moisture_flux.h"
@@ -114,6 +115,14 @@
 %shared_ptr(teca_mask)
 %ignore teca_mask::operator=;
 %include "teca_mask.h"
+
+/***************************************************************************
+ mesh_join
+ ***************************************************************************/
+%ignore teca_mesh_join::shared_from_this;
+%shared_ptr(teca_mesh_join)
+%ignore teca_mesh_join::operator=;
+%include "teca_mesh_join.h"
 
 /***************************************************************************
  table_reduce
