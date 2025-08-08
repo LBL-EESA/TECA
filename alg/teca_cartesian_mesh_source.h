@@ -150,6 +150,10 @@ public:
     int set_x_axis_variable(const teca_metadata &md);
     ///@}
 
+    /** Set flag whether mesh is periodic in x.
+     */
+    void set_periodic_in_x(int periodic);
+
     /** @name y_axis_variable
      * set the name of the variable to use for the coordinate axes and
      * optionally associated attributes.
@@ -171,6 +175,10 @@ public:
     int set_y_axis_variable(const teca_metadata &md);
     ///@}
 
+    /** Set flag whether mesh is periodic in y.
+     */
+    void set_periodic_in_y(int periodic);
+
     /** @name z_axis_variable
      * set the name of the variable to use for the coordinate axes and
      * optionally associated attributes.
@@ -191,6 +199,10 @@ public:
      */
     int set_z_axis_variable(const teca_metadata &md);
     ///@}
+
+    /** Set flag whether mesh is periodic in z.
+     */
+    void set_periodic_in_z(int periodic);
 
     /** @name t_axis_variable
      * set the name of the variable to use for the coordinate axes and
@@ -299,6 +311,9 @@ private:
     teca_metadata t_axis_attributes;
     std::vector<unsigned long> whole_extents;
     std::vector<double> bounds;
+    int periodic_in_x;
+    int periodic_in_y;
+    int periodic_in_z;
 
     std::vector<field_generator_t> field_generators;
 

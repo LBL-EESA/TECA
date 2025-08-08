@@ -223,6 +223,13 @@ int teca_cartesian_mesh_source::set_x_axis_variable(const teca_metadata &md)
 }
 
 // --------------------------------------------------------------------------
+void teca_cartesian_mesh_source::set_periodic_in_x(int periodic)
+{
+    this->periodic_in_x = periodic;
+    teca_algorithm::set_modified();
+}
+
+// --------------------------------------------------------------------------
 void teca_cartesian_mesh_source::set_y_axis_variable(const std::string &name)
 {
     this->y_axis_variable = name;
@@ -257,6 +264,13 @@ int teca_cartesian_mesh_source::set_y_axis_variable(const teca_metadata &md)
         return -1;
 
     return 0;
+}
+
+// --------------------------------------------------------------------------
+void teca_cartesian_mesh_source::set_periodic_in_y(int periodic)
+{
+    this->periodic_in_y = periodic;
+    teca_algorithm::set_modified();
 }
 
 // --------------------------------------------------------------------------
@@ -295,6 +309,13 @@ int teca_cartesian_mesh_source::set_z_axis_variable(const teca_metadata &md)
         return -1;
 
     return 0;
+}
+
+// --------------------------------------------------------------------------
+void teca_cartesian_mesh_source::set_periodic_in_z(int periodic)
+{
+    this->periodic_in_z = periodic;
+    teca_algorithm::set_modified();
 }
 
 // --------------------------------------------------------------------------
@@ -577,6 +598,10 @@ teca_metadata teca_cartesian_mesh_source::get_output_metadata(
     coords.set("z", z_axis);
     coords.set("t", t_axis);
 
+    coords.set("periodic_in_x", this->periodic_in_x);
+    coords.set("periodic_in_y", this->periodic_in_y);
+    coords.set("periodic_in_z", this->periodic_in_z);
+
     this->internals->metadata.set("whole_extent", this->whole_extents);
     this->internals->metadata.set("coordinates", coords);
 
@@ -780,6 +805,10 @@ const_p_teca_dataset teca_cartesian_mesh_source::execute(unsigned int port,
     mesh->set_x_coordinates(x_variable, out_x);
     mesh->set_y_coordinates(y_variable, out_y);
     mesh->set_z_coordinates(z_variable, out_z);
+
+    mesh->set_periodic_in_x(this->periodic_in_x);
+    mesh->set_periodic_in_y(this->periodic_in_y);
+    mesh->set_periodic_in_z(this->periodic_in_z);
 
     // get the calendar
     std::string calendar;
