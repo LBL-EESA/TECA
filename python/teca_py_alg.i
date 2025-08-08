@@ -26,6 +26,7 @@
 #include "teca_l2_norm.h"
 #include "teca_laplacian.h"
 #include "teca_latitude_damper.h"
+#include "teca_latitude_range_filter.h"
 #include "teca_mask.h"
 #include "teca_mesh_join.h"
 #include "teca_normalize_coordinates.h"
@@ -356,6 +357,14 @@ struct teca_tc_saffir_simpson
 %shared_ptr(teca_latitude_damper)
 %ignore teca_latitude_damper::operator=;
 %include "teca_latitude_damper.h"
+
+/***************************************************************************
+ latitude_range_filter
+ ***************************************************************************/
+%ignore teca_latitude_range_filter::shared_from_this;
+%shared_ptr(teca_latitude_range_filter)
+%ignore teca_latitude_range_filter::operator=;
+%include "teca_latitude_range_filter.h"
 
 /***************************************************************************
  bayesian_ar_detect

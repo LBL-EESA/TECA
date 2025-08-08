@@ -34,6 +34,7 @@ set(teca_alg_cxx_srcs
     teca_integrated_water_vapor.cxx
     teca_l2_norm.cxx
     teca_latitude_damper.cxx
+    teca_latitude_range_filter.cxx
     teca_laplacian.cxx
     teca_mask.cxx
     teca_mesh_join.cxx
