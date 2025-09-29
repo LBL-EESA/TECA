@@ -244,7 +244,8 @@ void component_area(unsigned long nlon, unsigned long nlat,
 
 // --------------------------------------------------------------------------
 teca_2d_component_area::teca_2d_component_area() :
-    component_variable(""), contiguous_component_ids(0), background_id(-1)
+    component_variable(""), contiguous_component_ids(0), background_id(-1),
+    output_metadata_prefix("")
 {
     this->set_number_of_input_connections(1);
     this->set_number_of_output_ports(1);
@@ -359,6 +360,20 @@ const_p_teca_dataset teca_2d_component_area::execute(
     const std::vector<const_p_teca_dataset> &input_data,
     const teca_metadata &request)
 {
+    // Keys for output metadata
+    std::string out_component_ids_key = "component_ids";
+    std::string out_component_area = "component_area";
+    std::string out_number_of_components_key = "number_of_components";
+    std::string out_background_id_key = "background_id";
+
+    if(!this->output_metadata_prefix.empty())
+    {
+        out_component_ids_key.insert(0, this->output_metadata_prefix);
+        out_component_area.insert(0, this->output_metadata_prefix);
+        out_number_of_components_key.insert(0, this->output_metadata_prefix);
+        out_background_id_key.insert(0, this->output_metadata_prefix);
+    }
+
 #ifdef TECA_DEBUG
     cerr << teca_parallel_id()
         << "teca_2d_component_area::execute" << endl;
@@ -439,7 +454,7 @@ const_p_teca_dataset teca_2d_component_area::execute(
             return nullptr;
         }
     }
-    out_metadata.set("background_id", bg_id);
+    out_metadata.set(out_background_id_key, bg_id);
 
     // look for the list of components.
     bool has_component_ids = in_metadata.has("component_ids");
@@ -514,9 +529,9 @@ const_p_teca_dataset teca_2d_component_area::execute(
                 cuda_impl::component_area(cudaStreamPerThread, nx,ny, p_xc,p_yc, p_labels, n_labels, pcomponent_area);
 
                 // transfer the result to the output
-                out_metadata.set("number_of_components", n_labels);
-                out_metadata.set("component_ids", component_id);
-                out_metadata.set("component_area", component_area);
+                out_metadata.set(out_number_of_components_key, n_labels);
+                out_metadata.set(out_component_ids_key, component_id);
+                out_metadata.set(out_component_area, component_area);
             }
             else
             {
@@ -557,9 +572,9 @@ const_p_teca_dataset teca_2d_component_area::execute(
                     host_impl::component_area(nx,ny, p_xc,p_yc, p_labels, component_area);
 
                     // transfer the result to the output
-                    out_metadata.set("number_of_components", n_labels);
-                    out_metadata.set("component_ids", component_id);
-                    out_metadata.set("component_area", component_area);
+                    out_metadata.set(out_number_of_components_key, n_labels);
+                    out_metadata.set(out_component_ids_key, component_id);
+                    out_metadata.set(out_component_area, component_area);
                 }
                 else
                 {
@@ -583,9 +598,9 @@ const_p_teca_dataset teca_2d_component_area::execute(
                         pcomponent_area[i] = it->second;
                     }
 
-                    out_metadata.set("number_of_components", n_labels);
-                    out_metadata.set("component_ids", component_id);
-                    out_metadata.set("component_area", component_area);
+                    out_metadata.set(out_number_of_components_key, n_labels);
+                    out_metadata.set(out_component_ids_key, component_id);
+                    out_metadata.set(out_component_area, component_area);
                 }
 #if defined(TECA_HAS_CUDA)
             }

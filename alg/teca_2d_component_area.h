@@ -88,6 +88,15 @@ public:
     TECA_ALGORITHM_PROPERTY(long, background_id)
     ///@}
 
+    /** @name output_metadata_prefix
+     * set this to a prefix for the metadata keys used to store the
+     * component ids and areas. By default this is emtpy, i.e. no prefix.
+     */
+    ///@{
+    TECA_ALGORITHM_PROPERTY(std::string, output_metadata_prefix)
+    ///@}
+
+
 protected:
     teca_2d_component_area();
 
@@ -114,6 +123,7 @@ private:
     std::string component_variable;
     int contiguous_component_ids;
     long background_id;
+    std::string output_metadata_prefix;
 };
 
 #endif
