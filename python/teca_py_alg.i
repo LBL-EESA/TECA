@@ -430,6 +430,11 @@ struct teca_tc_saffir_simpson
 %pythoncode "teca_temporal_reduction.py"
 
 /***************************************************************************
+ teca_time_metadata_override
+ ***************************************************************************/
+%pythoncode "teca_time_metadata_override.py"
+
+/***************************************************************************
  vertical_reduction
  ***************************************************************************/
 %ignore teca_vertical_reduction::shared_from_this;

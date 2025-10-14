@@ -1,5 +1,27 @@
 # Helper functions to sync daily thresholds with input data time steps:
+import sys
 import teca
+import numpy as np
+from datetime import datetime
+
+
+def report_error_and_exit(message, rank, exit_code=-1):
+    """
+    Report an error message and exit the program.
+
+    Parameters
+    ----------
+    message : str
+        Error message to display
+    rank : int
+        MPI rank (only rank 0 will print the message)
+    exit_code : int, optional
+        Exit code to use (default: -1)
+    """
+    if rank == 0:
+        sys.stderr.write(f'ERROR: {message}\n')
+    sys.exit(exit_code)
+
 
 def day_of_year(month: int, day: int) -> int:
 # (written by CBorg AI at LBNL)
@@ -84,3 +106,44 @@ def validate_thresholds_file(thresholds_md, rank=0):
         return False
     else:
         return True
+
+def calculate_elapsed_seconds(input_md, first_step, last_step):
+    """
+    Calculate elapsed seconds since time step 0 for the processed time range.
+
+    Parameters
+    ----------
+    input_md : teca_metadata
+        Input metadata containing time coordinate information
+    first_step : int
+        First time step to process
+    last_step : int
+        Last time step to process (inclusive)
+
+    Returns
+    -------
+    elapsed_seconds : numpy.ndarray
+        Array of elapsed seconds since time step 0 for each processed time step
+    """
+    input_coords = input_md['coordinates']
+    t = input_coords['t']
+
+    # Get calendar and units from metadata
+    time_atts = input_md['attributes']['time']
+    calendar = time_atts['calendar']
+    units = time_atts['units']
+
+    # Convert time step 0 to datetime
+    t0 = t[0]
+    year0, month0, day0, hour0, minute0, second0 = teca.calendar_util_date(t0, units, calendar)
+    dt0 = datetime(year0, month0, day0, hour0, minute0, int(second0))
+
+    # Calculate elapsed seconds for each time step in the range
+    elapsed_seconds = []
+    for i in range(first_step, last_step + 1):
+        year, month, day, hour, minute, second = teca.calendar_util_date(t[i], units, calendar)
+        curr_dt = datetime(year, month, day, hour, minute, int(second))
+        elapsed = (curr_dt - dt0).total_seconds()
+        elapsed_seconds.append(elapsed)
+
+    return np.array(elapsed_seconds)
