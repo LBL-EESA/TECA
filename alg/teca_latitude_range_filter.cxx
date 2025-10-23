@@ -64,7 +64,7 @@ void filter_by_lat_range(num_t *output, const num_t *input, const coord_t *lat,
     {
         size_t jj = j * n_lon_vals;
         for (size_t i = 0; i < n_lon_vals; ++i)
-            output[jj + i] = (abs(lat[i]) >= min_lat && abs(lat[i]) <= max_lat) ?
+            output[jj + i] = (abs(lat[j]) >= min_lat && abs(lat[j]) <= max_lat) ?
                              input[jj + i] : num_t(0);
     }
 }

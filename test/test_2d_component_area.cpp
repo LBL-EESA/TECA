@@ -81,10 +81,10 @@ int main(int argc, char **argv)
 {
     teca_system_interface::set_stack_trace_on_error();
 
-    if (argc != 8)
+    if (argc != 8 && argc != 9)
     {
         cerr << "test_2d_component_area [nx] [ny] [flip y] [num labels x] "
-            << "[num labels y] [consecutive labels] [out file]" << endl;
+            << "[num labels y] [consecutive labels] [out file] ([metadata prefix])" << endl;
         return -1;
     }
 
@@ -95,6 +95,7 @@ int main(int argc, char **argv)
     unsigned long nxl = atoi(argv[5]);
     int consecutive_labels = atoi(argv[6]);
     string out_file = argv[7];
+    string metadata_prefix = (argc > 8) ? argv[8] : "";
 
     if (!consecutive_labels && (nxl*nyl > 64))
     {
@@ -128,6 +129,8 @@ int main(int argc, char **argv)
     ca->set_contiguous_component_ids(consecutive_labels);
     ca->set_background_id(background_id);
     ca->set_input_connection(norm_coord->get_output_port());
+    if (!metadata_prefix.empty())
+        ca->set_output_metadata_prefix(metadata_prefix);
 
     p_teca_dataset_capture cao = teca_dataset_capture::New();
     cao->set_input_connection(ca->get_output_port());
@@ -151,10 +154,16 @@ int main(int argc, char **argv)
 #endif
 
     std::vector<int> label_id;
-    mdo.get("component_ids", label_id);
+    if (!metadata_prefix.empty())
+        mdo.get(metadata_prefix + "component_ids", label_id);
+    else
+        mdo.get("component_ids", label_id);
 
     std::vector<double> area;
-    mdo.get("component_area", area);
+    if (!metadata_prefix.empty())
+        mdo.get(metadata_prefix + "component_area", area);
+    else
+        mdo.get("component_area", area);
 
     cerr << "component area" << endl;
     double total_area = 0.f;
