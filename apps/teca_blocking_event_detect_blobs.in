@@ -345,7 +345,7 @@ def create_slice_extractor(args, input_md, input_node):
     slice_source = teca.teca_cartesian_mesh_source.New()
     slice_source.set_bounds([
         bounds[0], bounds[1], bounds[2], bounds[3],
-        args.pressure_level, args.pressure_level, 0, float(t[-1])])
+        args.pressure_level, args.pressure_level, float(t[0]), float(t[-1])])
     slice_source.set_whole_extents([
         0, x.size-1, 0, y.size-1, 0, 0, 0, t.size-1])
     slice_source.set_periodic_in_x(True)

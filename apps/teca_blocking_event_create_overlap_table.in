@@ -322,9 +322,6 @@ def validate_arguments(args, rank):
     if args.min_overlap_prev < 0 or args.min_overlap_prev > 100:
         report_error_and_exit('min_overlap_prev must be in range [0, 100]', rank)
 
-    if args.n_threads < 1:
-        report_error_and_exit('n_threads must be at least 1', rank)
-
 
 def create_input_reader(args):
     """
