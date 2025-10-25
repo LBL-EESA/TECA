@@ -773,6 +773,20 @@ teca_add_app_test(test_regional_moisture_flux_app_mpi_threads
     FEATURES ${TECA_HAS_NETCDF_MPI} ${TECA_HAS_MPI} ${TEST_MPI_THREADS}
     REQ_TECA_DATA)
 
+teca_add_app_test(test_blocking_event_detect_blobs_app
+    teca_blocking_event_detect_blobs
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_blocking_event_detect_blobs.sh
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_app_test(test_blocking_event_create_overlap_table_app
+    teca_blocking_event_create_overlap_table
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_blocking_event_create_overlap_table.sh
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
 set(app_names
     teca_bayesian_ar_detect
     teca_cf_restripe

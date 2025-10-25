@@ -20,10 +20,11 @@
 # components by area, and write the results to a set of NetCDF files.
 #
 # NOTE: Differing from TempestExtremes, this application already writes out
-# connected component ids rather than a binary mask. Computing connected
-# components is required to filter by area and saving connected component ids
-# saves another expensive connected component computation for tracking in the
-# next step.
+# connected component ids rather than a binary mask (unless the option
+# --discard-unique-region-ids is specified, in which case it will write a
+# binary mask like DetectBlobs). Computing connected components is required
+# to filter by area and saving connected component ids saves another expensive
+# connected component computation for tracking in the next step.
 
 import argparse
 import sys
@@ -45,7 +46,8 @@ from teca_blocking_event_helper_functions import (
 )
 
 from teca_blocking_event_operations import (
-    DetectGeopotentialHeightAnomalyOp
+    DetectGeopotentialHeightAnomalyOp,
+    BinarizeComponentIdsOp
 )
 
 
@@ -146,6 +148,11 @@ def create_argument_parser():
 
     parser.add_argument('--save_mask', action='store_true',
         help='save the geopotential height anomaly mask to the output file')
+
+    parser.add_argument('--discard-unique-region-ids', action='store_true',
+        help='if specified, binarize the output, i.e., write a mask that '
+             'contains one if location is blocking event candidate, otherwise '
+             'zero')
 
     # Detection parameters
     parser.add_argument('--pressure_level', type=float, default=500.0,
@@ -523,6 +530,57 @@ def create_component_area_filter(args, input_node, segmentation_varname):
     return area_filter, component_varname
 
 
+def create_binarizer(args, input_node, component_varname, rank):
+    """
+    Create and configure component ID binarization pipeline.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Contains command-line arguments
+    input_node : teca.teca_algorithm
+        Input connection
+    component_varname : str
+        Name of component variable to binarize
+    rank : int
+        MPI rank for error reporting
+
+    Returns
+    -------
+    binarizer : teca.teca_derived_quantity
+        Configured binarization operator
+    binary_varname : str
+        Name of binary output variable
+    """
+    binary_varname = 'blocking_event_mask'
+
+    binarize_op = teca.teca_derived_quantity.New()
+    binarize_op.set_operation_name('binarize_component_ids')
+    binarize_op.set_input_connection(input_node.get_output_port())
+    binarize_op.set_dependent_variables([component_varname])
+
+    # Configure output array attributes
+    try:
+        input_md = input_node.update_metadata()
+        in_atts = teca.teca_array_attributes(input_md['attributes'][component_varname])
+        out_atts = teca.teca_array_attributes(
+            teca.teca_char_array_code.get(), teca.teca_array_attributes.point_centering,
+            0, in_atts.mesh_dim_active, 'unitless',
+            binary_varname,
+            'a binary mask indicating blocking event candidates',
+            None)
+        binarize_op.append_derived_variable(binary_varname, out_atts)
+    except Exception as e:
+        if rank == 0:
+            print(f"Warning: Could not configure binary mask attributes: {e}")
+
+    # Set the binarization callback
+    binarize_callback = BinarizeComponentIdsOp(component_varname, binary_varname)
+    binarize_op.set_execute_callback(binarize_callback)
+
+    return binarize_op, binary_varname
+
+
 def create_writer(args, input_node, mask_varname, component_varname):
     """
     Configure and return the NetCDF writer.
@@ -633,9 +691,19 @@ def build_blocking_event_detection_pipeline(args, rank):
     component_area_filter, component_varname = create_component_area_filter(
         args, latitude_range_filter, mask_varname)
 
+    # Binarize component IDs if requested
+    if args.discard_unique_region_ids:
+        binarizer, binary_varname = create_binarizer(
+            args, component_area_filter, component_varname, rank)
+        final_node = binarizer
+        output_component_varname = binary_varname
+    else:
+        final_node = component_area_filter
+        output_component_varname = component_varname
+
     # Configure the writer
     writer = create_writer(
-        args, component_area_filter, mask_varname, component_varname)
+        args, final_node, mask_varname, output_component_varname)
 
     return writer
 

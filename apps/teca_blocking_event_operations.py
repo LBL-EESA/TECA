@@ -175,3 +175,81 @@ class IntersectRegionsOp:
 
         arrays[self.intersection_varname] = intersection
         return out_mesh
+
+
+class BinarizeComponentIdsOp:
+    """
+    Operator for binarizing component IDs in a dataset.
+
+    This class converts labeled regions to a binary mask where each element is 1
+    if it is part of a blocking event candidate (non-background), otherwise 0.
+
+    Attributes:
+        component_varname (str): Name of the input array containing component IDs.
+        binary_varname (str): Name of the output binary mask array to be created.
+        background_value (int): Value representing background in the component array.
+    """
+
+    def __init__(self, component_varname, binary_varname, background_value=0):
+        """
+        Initialize the operator with the specified variable names and background value.
+
+        Parameters
+        ----------
+        component_varname : str
+            Name of the input array containing component IDs.
+        binary_varname : str
+            Name of the output binary mask array to be created.
+        background_value : int, optional
+            Value representing background in the component array (default: 0).
+        """
+        self.component_varname = component_varname
+        self.binary_varname = binary_varname
+        self.background_value = background_value
+
+    def __call__(self, port, data_in, req):
+        """
+        Apply the binarization operation to the input data.
+
+        Handles both CPU and CUDA execution depending on the environment and request.
+        Returns a mesh with the binary mask array added, where each element is 1
+        if it is part of a blocking event candidate, otherwise 0.
+
+        Parameters
+        ----------
+        port : int
+            The input port number (not used in this implementation).
+        data_in : list
+            List containing the input mesh data.
+        req : dict
+            Request dictionary that may contain 'device_id' for CUDA execution.
+
+        Returns
+        -------
+        teca_cartesian_mesh
+            The output mesh with the added binary mask array.
+        """
+        dev = -1
+        np = numpy
+        if teca.get_teca_has_cuda() and teca.get_teca_has_cupy():
+            dev = req.get('device_id', -1)
+            if dev >= 0:
+                cupy.cuda.Device(dev).use()
+                np = cupy
+
+        in_mesh = teca.as_teca_cartesian_mesh(data_in[0])
+        out_mesh = teca.teca_cartesian_mesh.New()
+        out_mesh.shallow_copy(in_mesh)
+        arrays = out_mesh.get_point_arrays()
+
+        component_array = arrays[self.component_varname]
+
+        if dev < 0:
+            component_data = component_array.get_host_accessible()
+        else:
+            component_data = component_array.get_cuda_accessible()
+
+        # Create binary mask: 1 if component is not background, 0 otherwise
+        binary_mask = (component_data != self.background_value).astype(np.byte)
+        arrays[self.binary_varname] = binary_mask
+        return out_mesh

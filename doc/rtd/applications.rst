@@ -3532,23 +3532,28 @@ connected component labeling on the identified anomalies, filters components by
 area, and writes the results to NetCDF files.
 
 Unlike the original TempestExtremes implementation, this application directly
-outputs connected component IDs rather than binary masks, eliminating the need
-for an additional expensive connected component computation in subsequent
-tracking steps.
+outputs connected component IDs rather than binary masks (unless the option
+--discard-unique-region-ids is specified, in which case it mimicks the
+TempestExtremes DetectBlobs behavior), eliminating the need for an additional
+expensive connected component computation in subsequent tracking steps.
 
 Inputs
 ~~~~~~
 
-1. A 3D time dependent mesh in NetCDF CF2 format with geopotential height data at 500 hPa
-2. A separate NetCDF dataset containing daily threshold values for one year (365 time steps)
+* A 3D time dependent mesh in NetCDF CF2 format with geopotential height data at 500 hPa
+* A separate NetCDF dataset containing daily threshold values for one year (365 time steps)
 
 Outputs
 ~~~~~~~
 
 A 2D mesh with:
 
-1. blocking_event_id - labeled connected components representing blocking events
-2. geopotential_height_anomaly_mask - binary mask (optional, enabled with --save_mask)
+* blocking_event_id - labeled connected components representing blocking events
+  (if --discard-unique-region-ids is omitted)
+Or:
+* blocking_event_mask - binary mask indicating blocking event candidates
+ (if --discard-unique-region-ids is specified)
+* geopotential_height_anomaly_mask - binary mask (optional, enabled with --save_mask)
 
 Command Line Arguments
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -3624,7 +3629,15 @@ Command Line Arguments
     time unit
 
 --save_mask
-    save the geopotential height anomaly mask to the output file
+    save the geopotential height anomaly mask to the output file. This is mainly
+    useful for debugging purposes as the mask is not filtered by latidude range or
+    connected component area.
+
+--discard-unique-region-ids
+    if specified, binarize the output, i.e., write a mask that contains one if
+    location is blocking event candidate, otherwise zero (like the TempestExtremes
+    DetectBlobs implementation). By default, the output contains unique region ids
+    to save another connected component labeling step in subsequent tracking stages.
 
 --pressure_level arg
     pressure level in hPa for blocking detection (standard: 500 hPa)
@@ -3776,8 +3789,9 @@ A 2D time dependent mesh in NetCDF CF2 format with labeled blocking event IDs
 Outputs
 ~~~~~~~
 
-1. A CSV table listing region pairs that meet the minimum overlap threshold
-2. An optional NumPy file containing elapsed time information (if --output_times_file is specified)
+* A CSV table listing region pairs that meet the minimum overlap threshold
+* An optional NumPy file containing elapsed time information
+  (if --output_times_file is specified)
 
 Command Line Arguments
 ~~~~~~~~~~~~~~~~~~~~~~
