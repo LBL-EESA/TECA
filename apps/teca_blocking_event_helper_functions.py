@@ -147,3 +147,26 @@ def calculate_elapsed_seconds(input_md, first_step, last_step):
         elapsed_seconds.append(elapsed)
 
     return np.array(elapsed_seconds)
+
+
+def print_metadata_times(label, input_md):
+    """
+    Print the time values from the input metadata for debugging purposes.
+
+    Parameters
+    ----------
+    input_md : teca_metadata
+        Input metadata containing time coordinate information
+    """
+    input_coords = input_md['coordinates']
+    t = input_coords['t']
+
+    # Get calendar and units from metadata
+    time_atts = input_md['attributes']['time']
+    calendar = time_atts['calendar']
+    units = time_atts['units']
+
+    print(f"{label} metadata time values (calendar: {calendar}, units: {units}):")
+    for i, time_value in enumerate(t):
+        year, month, day, hour, minute, second = teca.calendar_util_date(time_value, units, calendar)
+        print(f"Time step {i}: time value {time_value} -> {year}-{month:02d}-{day:02d} {hour:02d}:{minute:02d}:{int(second):02d}")
