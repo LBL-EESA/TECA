@@ -85,6 +85,7 @@ class generate_tracking_matches_table_algorithm(teca.teca_python_algorithm):
         self.prev_blob_prefix = "prev_blob_"
         self.intersection_prefix = "intersection_"
         self.min_overlap_fraction_prev = 0
+        self.background_id = 0
 
     def set_verbose(self, verbose=True):
         """
@@ -129,6 +130,17 @@ class generate_tracking_matches_table_algorithm(teca.teca_python_algorithm):
             Minimum overlap percentage (0-100) required to be included in the table
         """
         self.min_overlap_fraction_prev = min_overlap_prev / 100.
+
+    def set_background_id(self, background_id):
+        """
+        Set the background ID value used in component labeling.
+
+        Parameters
+        ----------
+        background_id : int
+            Background ID value
+        """
+        self.background_id = background_id
 
     def vprint(self, *args, **kwargs):
         """
@@ -199,13 +211,23 @@ class generate_tracking_matches_table_algorithm(teca.teca_python_algorithm):
         self.vprint(f"  Intersection areas: {intersection_component_areas}")
 
         # Find pairs of regions with sufficient overlap
-        # Note: The intersection component IDs are encoded as (next_blob_id << SHORT_ID_BITS) | prev_blob_id
-        region_matches = [
-            (x & self.SHORT_ID_MASK, x >> self.SHORT_ID_BITS)
-            for x, overlap_area in zip(intersection_component_ids, intersection_component_areas)
-            if x != 0 and overlap_area / prev_blob_area_dict[x & self.SHORT_ID_MASK] > self.min_overlap_fraction_prev
-        ]
-        self.vprint(f"  Region matches: {region_matches}")
+        if isinstance(intersection_component_ids, int):
+            # Only one intersection ID present; no overlaps; ensure ID is background
+            assert intersection_component_ids == self.background_id
+            assert isinstance(intersection_component_areas, float)
+            region_matches = []
+        else:
+            # Note: The intersection component IDs are encoded as
+            # (next_blob_id << SHORT_ID_BITS) | prev_blob_id
+            region_matches = [
+                (x & self.SHORT_ID_MASK, x >> self.SHORT_ID_BITS)
+                for x, overlap_area in zip(intersection_component_ids, intersection_component_areas)
+                if x != 0 and overlap_area / prev_blob_area_dict[x & self.SHORT_ID_MASK] > self.min_overlap_fraction_prev
+            ]
+        if region_matches:
+            self.vprint(f"  Region matches: {region_matches}")
+        else:
+            self.vprint(f"  No region matches found between time step {t_index} and {t_index + 1}.")
 
         # Create and return the output table
         out_table = teca.teca_table.New()
@@ -544,6 +566,7 @@ def create_tracking_table_generator(args, input_node):
     generator = generate_tracking_matches_table_algorithm.New()
     generator.set_input_connection(input_node.get_output_port())
     generator.set_min_overlap_prev(args.min_overlap_prev)
+    generator.set_background_id(args.background_id)
     generator.set_prev_blob_prefix('prev_blob_')
     generator.set_intersection_prefix('intersection_')
     if args.verbose:
