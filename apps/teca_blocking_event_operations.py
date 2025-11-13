@@ -165,7 +165,11 @@ class IntersectRegionsOp:
             region_labels_1_array = region_labels_1_array.get_cuda_accessible()
             region_labels_2_array = region_labels_2_array.get_cuda_accessible()
 
-        # TODO/FIXME: Check types/change types as needed.
+        # Pack intersecting region IDs into single int32: region1 in low 16 bits,
+        # region2 in high 16 bits, each supporting up to 65535 unique regions.
+        # If either region is background, the output is background.
+        # This encoding allows efficient storage and later unpacking of region
+        # pairs.
         intersection = np.where(
             (region_labels_1_array != self.background_value) &
             (region_labels_2_array != self.background_value),

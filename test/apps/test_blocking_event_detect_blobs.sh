@@ -37,7 +37,7 @@ ${launcher} ${app_prefix}/teca_blocking_event_detect_blobs \
     --input_regex ${data_root}/MERRA2_BlockingEvent/MERRA2_100\.inst3_3d_asm_Np_Only3LayersH\.19810208\.nc \
     --geopotential_height_variable H --first_step 0 --last_step 0 \
     --thresholds_regex ${data_root}/MERRA2_BlockingEvent/MERRA2_threshold_H_filtered\.nc \
-    --discard-unique-region-ids \
+    --discard_unique_region_ids \
     --output_file test_MERRA2_blocktag.%t%.nc \
     --file_layout daily --date_format %Y%m%d \
     --n_threads ${n_threads}

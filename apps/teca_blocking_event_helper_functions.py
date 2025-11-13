@@ -64,7 +64,7 @@ def generate_day_index_list(md):
     """
     # Generate an array of day indices for the thresholds data. Iterate over
     # time values in the metaddata and convert to day of year. This is the
-    # index into the thrsholds data set. (Note: Thresholds data does not have
+    # index into the thresholds data set. (Note: Thresholds data does not have
     # leap days. Feb 29th is mapped to March 1st.)
     time_atts = md['attributes']['time']
     calendar = time_atts['calendar']
@@ -124,9 +124,27 @@ def calculate_elapsed_seconds(input_md, first_step, last_step):
     -------
     elapsed_seconds : numpy.ndarray
         Array of elapsed seconds since time step 0 for each processed time step
+
+    Raises
+    ------
+    ValueError
+        If first_step or last_step are out of bounds
     """
     input_coords = input_md['coordinates']
     t = input_coords['t']
+
+    # Validate indices are within bounds
+    if first_step < 0 or first_step >= len(t):
+        raise ValueError(
+            f"first_step ({first_step}) out of range [0, {len(t)-1}]")
+
+    if last_step >= len(t):
+        raise ValueError(
+            f"last_step ({last_step}) exceeds time array length ({len(t)})")
+
+    if last_step < first_step:
+        raise ValueError(
+            f"last_step ({last_step}) must be >= first_step ({first_step})")
 
     # Get calendar and units from metadata
     time_atts = input_md['attributes']['time']

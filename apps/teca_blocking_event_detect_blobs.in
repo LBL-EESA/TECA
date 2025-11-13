@@ -21,13 +21,14 @@
 #
 # NOTE: Differing from TempestExtremes, this application already writes out
 # connected component ids rather than a binary mask (unless the option
-# --discard-unique-region-ids is specified, in which case it will write a
+# --discard_unique_region_ids is specified, in which case it will write a
 # binary mask like DetectBlobs). Computing connected components is required
 # to filter by area and saving connected component ids saves another expensive
 # connected component computation for tracking in the next step.
 
 import argparse
 import sys
+from typing import Optional, List
 
 try:
     from mpi4py import MPI
@@ -50,6 +51,680 @@ from teca_blocking_event_operations import (
     BinarizeComponentIdsOp
 )
 
+# Default detection parameters for blocking events
+# (according to Ullrich et al. 2021)
+DEFAULT_PRESSURE_LEVEL = 500.0  # default pressure level (hPa)
+DEFAULT_MIN_LATITUDE = 25.0     # default minimum absolute latitude
+DEFAULT_MAX_LATITUDE = 75.0     # default maximum absolute latitude
+DEFAULT_MIN_AREA = 1.0e6        # default minimum area (sq. km)
+
+# Default variable names
+DEFAULT_X_AXIS_VARIABLE = 'lon'
+DEFAULT_Y_AXIS_VARIABLE = 'lat'
+DEFAULT_T_AXIS_VARIABLE = 'time'
+
+class teca_blocking_event_detect_blobs:
+    """
+    A class that encapsulates the blocking event detection pipeline.
+
+    This class provides a reusable component for detecting blocking events
+    via connected component labeling of geopotential height anomalies.
+    It can accept input from any TECA algorithm and provide output to any
+    TECA algorithm.
+    """
+    def __init__(self):
+        """
+        Initialize the blocking event detection pipeline.
+
+        Creates a new instance with default parameter values. All configuration
+        must be set using the setter methods before building the pipeline.
+        """
+        # Placeholders for input node and pipeline
+        self.input_node = None
+        self.pipeline_tail = None
+
+        self.thresholds_reader = None
+        self.thresholds_x_axis_variable = DEFAULT_X_AXIS_VARIABLE
+        self.thresholds_y_axis_variable = DEFAULT_Y_AXIS_VARIABLE
+        self.thresholds_t_axis_variable = DEFAULT_T_AXIS_VARIABLE
+
+        self.geopotential_height_variable = None
+        self.geopotential_height_threshold_variable = None
+
+        self.discard_unique_region_ids = False
+
+        # Use module-level constants for default detection parameters
+        self.pressure_level = DEFAULT_PRESSURE_LEVEL
+        self.min_latitude = DEFAULT_MIN_LATITUDE
+        self.max_latitude = DEFAULT_MAX_LATITUDE
+        self.min_area = DEFAULT_MIN_AREA
+
+        # Names for derived variables
+        self.mask_varname = 'geopotential_height_anomaly_mask'
+        self.component_varname = 'blocking_event_id'
+        self.binarized_component_varname = 'blocking_event_mask'
+
+    def _ensure_pipeline_not_built(self) -> None:
+        """
+        Ensure that the pipeline has not been built yet.
+
+        Raises
+        ------
+        RuntimeError
+            If the pipeline has already been built
+        """
+        if self.pipeline_tail is not None:
+            raise RuntimeError(
+                "Parameters can only be set before pipeline is built.")
+
+    def set_thresholds_x_axis_variable(self, x_axis_variable: str) -> None:
+        """
+        Set the x axis variable name for the thresholds reader.
+
+        Parameters
+        ----------
+        x_axis_variable : str
+            Name of x axis variable
+        """
+        self._ensure_pipeline_not_built()
+        if not x_axis_variable:
+            raise ValueError("x_axis_variable cannot be empty")
+        self.thresholds_x_axis_variable = x_axis_variable
+
+    def set_thresholds_y_axis_variable(self, y_axis_variable: str) -> None:
+        """
+        Set the y axis variable name for the thresholds reader.
+
+        Parameters
+        ----------
+        y_axis_variable : str
+            Name of y axis variable
+        """
+        self._ensure_pipeline_not_built()
+        if not y_axis_variable:
+            raise ValueError("y_axis_variable cannot be empty")
+        self.thresholds_y_axis_variable = y_axis_variable
+
+    def set_thresholds_t_axis_variable(self, t_axis_variable: str) -> None:
+        """
+        Set the t axis variable name for the thresholds reader.
+
+        Parameters
+        ----------
+        t_axis_variable : str
+            Name of t axis variable
+        """
+        self._ensure_pipeline_not_built()
+        if not t_axis_variable:
+            raise ValueError("t_axis_variable cannot be empty")
+        self.thresholds_t_axis_variable = t_axis_variable
+
+    def set_geopotential_height_variable(self, variable_name: str) -> None:
+        """
+        Set the geopotential height variable name.
+
+        Parameters
+        ----------
+        variable_name : str
+            Name of geopotential height variable
+        """
+        if not variable_name:
+            raise ValueError("variable_name cannot be empty")
+        self.geopotential_height_variable = variable_name
+
+    def set_geopotential_height_threshold_variable(self, variable_name: str) -> None:
+        """
+        Set the geopotential height threshold variable name.
+
+        Parameters
+        ----------
+        variable_name : str
+            Name of geopotential height threshold variable
+        """
+        if not variable_name:
+            raise ValueError("variable_name cannot be empty")
+        self.geopotential_height_threshold_variable = variable_name
+
+    def set_pressure_level(self, pressure_level: float) -> None:
+        """
+        Set the pressure level for blocking event detection.
+
+        Parameters
+        ----------
+        pressure_level : float
+            Pressure level in hPa
+        """
+        self._ensure_pipeline_not_built()
+        if pressure_level <= 0:
+            raise ValueError(
+                f"pressure_level must be positive, got {pressure_level}")
+        self.pressure_level = pressure_level
+
+    def set_min_latitude(self, min_latitude: float) -> None:
+        """
+        Set the minimum absolute latitude for blocking event detection.
+
+        Parameters
+        ----------
+        min_latitude : float
+            Minimum absolute latitude in degrees
+        """
+        self._ensure_pipeline_not_built()
+        if not (0 <= min_latitude <= 90):
+            raise ValueError(
+                f"min_latitude must be in range [0, 90], got {min_latitude}")
+        self.min_latitude = min_latitude
+
+    def set_max_latitude(self, max_latitude: float) -> None:
+        """
+        Set the maximum absolute latitude for blocking event detection.
+
+        Parameters
+        ----------
+        max_latitude : float
+            Maximum absolute latitude in degrees
+        """
+        self._ensure_pipeline_not_built()
+        if not (0 <= max_latitude <= 90):
+            raise ValueError(
+                f"max_latitude must be in range [0, 90], got {max_latitude}")
+        self.max_latitude = max_latitude
+
+    def set_min_area(self, min_area: float) -> None:
+        """
+        Set the minimum area for blocking event detection.
+
+        Parameters
+        ----------
+        min_area : float
+            Minimum area in square kilometers
+        """
+        self._ensure_pipeline_not_built()
+        if min_area <= 0:
+            raise ValueError(f"min_area must be positive, got {min_area}")
+        self.min_area = min_area
+
+    def set_thresholds_filename(self, thresholds_filename: str) -> None:
+        """
+        Set the thresholds filename for the blocking event detection pipeline.
+        NOTE: Set either this or set_thresholds_regex(), not both.
+
+        Parameters
+        ----------
+        thresholds_filename : str
+            Path to the thresholds data file
+        """
+        self._ensure_pipeline_not_built()
+        if self.thresholds_reader is not None:
+            raise RuntimeError(
+                "Thresholds reader can only be set once.")
+        if not thresholds_filename:
+            raise ValueError("thresholds_filename cannot be empty")
+        self.thresholds_reader = teca.teca_multi_cf_reader.New()
+        self.thresholds_reader.set_input_file(thresholds_filename)
+
+    def set_thresholds_regex(self, thresholds_regex: str) -> None:
+        """
+        Set the thresholds regex for the blocking event detection pipeline.
+        NOTE: Set either this or set_thresholds_filename(), not both.
+
+        Parameters
+        ----------
+        thresholds_regex : str
+            Regex pattern to identify thresholds data files
+        """
+        self._ensure_pipeline_not_built()
+        if self.thresholds_reader is not None:
+            raise RuntimeError(
+                "Thresholds reader can only be set once.")
+        if not thresholds_regex:
+            raise ValueError("thresholds_regex cannot be empty")
+        self.thresholds_reader = teca.teca_cf_reader.New()
+        self.thresholds_reader.set_files_regex(thresholds_regex)
+
+    def set_discard_unique_region_ids(self, discard: bool) -> None:
+        """
+        Set whether to discard unique region ids and output a binary mask.
+
+        Parameters
+        ----------
+        discard : bool
+            If True, output a binary mask instead of unique region ids
+        """
+        self._ensure_pipeline_not_built()
+        self.discard_unique_region_ids = discard
+
+    def get_blocking_event_variable_name(self) -> str:
+        """
+        Get the name of the blocking event variable.
+
+        NOTE: This name of the variable depends on whether unique region ids
+        are being discarded.
+
+        Returns
+        -------
+        variable_name : str
+            Name of the blocking event variable
+        """
+        if self.discard_unique_region_ids:
+            return self.binarized_component_varname
+        else:
+            return self.component_varname
+
+    def get_mask_variable_name(self) -> str:
+        """
+        Get the name of the geopotential height anomaly mask variable.
+
+        Returns
+        -------
+        variable_name : str
+            Name of the mask variable
+        """
+        return self.mask_varname
+
+    def set_input_node(self, input_node: 'teca.teca_algorithm') -> None:
+        """
+        Set the input node for the blocking event detection pipeline.
+
+        IMPORTANT: Differing from typical TECA algorithms, we need an
+        input node and not an input port because we need to be able to
+        call update_metadata() on the input node to get metadata for
+        building the pipeline.
+
+        Parameters
+        ----------
+        input_node : teca.teca_algorithm
+            Input node for the pipeline
+        """
+        self._ensure_pipeline_not_built()
+        if input_node is None:
+            raise ValueError("input_node cannot be None")
+        self.input_node = input_node
+
+    def get_output_node(self) -> 'teca.teca_algorithm':
+        """
+        Get the output node of the blocking event detection pipeline.
+
+        Returns
+        -------
+        output_node : teca.teca_algorithm
+            Output node of the pipeline
+        """
+        if self.pipeline_tail is None:
+            self._build_detection_pipeline()
+        return self.pipeline_tail
+
+    def get_output_port(self) -> 'teca.teca_algorithm.OutputPort':
+        """
+        Get the output port of the blocking event detection pipeline.
+
+        Returns
+        -------
+        output_port : teca.teca_algorithm.OutputPort
+            Output port of the pipeline
+        """
+        if self.pipeline_tail is None:
+            self._build_detection_pipeline()
+        return self.pipeline_tail.get_output_port()
+
+    def _configure_thresholds_reader(self):
+        """
+        Configure the thresholds reader with axis variables and periodicity.
+        """
+        self.thresholds_reader.set_x_axis_variable(self.thresholds_x_axis_variable)
+        self.thresholds_reader.set_y_axis_variable(self.thresholds_y_axis_variable)
+        self.thresholds_reader.set_t_axis_variable(self.thresholds_t_axis_variable)
+        self.thresholds_reader.set_periodic_in_x(True)
+        # Note: teca_cf_reader has set_periodic_in_y(),
+        # but teca_multi_cf_reader does not
+        if hasattr(self.thresholds_reader, 'set_periodic_in_y'):
+            self.thresholds_reader.set_periodic_in_y(False)
+
+    def _get_and_validate_metadata(self, input_node, required_vars=None):
+        """
+        Get metadata and validate it.
+
+        Parameters
+        ----------
+        input_node : teca.teca_algorithm
+            Node from teca pipeline to get metadata from
+        required_vars : list of str, optional
+            List of required variable names for validation
+            If None, no variable validation is performed (default: None)
+
+        Returns
+        -------
+        metadata : teca_metadata
+            Validated metadata object
+        """
+        try:
+            metadata = input_node.update_metadata()
+        except Exception as e:
+            raise RuntimeError(
+                f'Failed to read metadata from input node. '
+                f'This may indicate an issue with the input data source. Error: {e}')
+
+        # Validate required variables for input data
+        if required_vars is not None:
+            try:
+                available_vars = metadata.get('variables')
+            except Exception:  # teca_metadata may raise various exceptions - catch all
+                available_vars = []
+            missing_vars = [var for var in required_vars if var not in available_vars]
+            if missing_vars:
+                raise RuntimeError(
+                    f'Required variable(s) {missing_vars} not found in input. '
+                    f'Available variables: {available_vars}. '
+                    f'Please check that your input contains the required variables.')
+
+        return metadata
+
+    def _create_slice_extractor(self, input_md, input_node):
+        """
+        Create and configure a slice source for extracting pressure level.
+
+        Parameters
+        ----------
+        args : argparse.Namespace
+            Contains pressure_level parameter
+
+        Returns
+        -------
+        source : teca.teca_cartesian_mesh_regrid
+            Configured mesh regrid for extracting pressure level slice
+        """
+        input_coords = input_md['coordinates']
+        x = input_coords['x']
+        y = input_coords['y']
+        t = input_coords['t']
+        bounds = input_md['bounds']
+
+        slice_source = teca.teca_cartesian_mesh_source.New()
+        slice_source.set_bounds([
+            bounds[0], bounds[1], bounds[2], bounds[3],
+            self.pressure_level, self.pressure_level, float(t[0]), float(t[-1])])
+        slice_source.set_whole_extents([
+            0, x.size-1, 0, y.size-1, 0, 0, 0, t.size-1])
+        slice_source.set_periodic_in_x(True)
+        slice_source.set_periodic_in_y(False)
+        calendar = input_md['attributes']['time']['calendar']
+        units = input_md['attributes']['time']['units']
+        slice_source.set_calendar(calendar, units)
+
+        extract_slice = teca.teca_cartesian_mesh_regrid.New()
+        extract_slice.set_interpolation_mode_linear()
+        extract_slice.set_input_connection(0, slice_source.get_output_port())
+        extract_slice.set_input_connection(1, input_node.get_output_port())
+
+        return extract_slice
+
+    def _create_thresholds_synchronization(self, input_md, input_node):
+        """
+        Create and configure time synchronization for thresholds with input
+        data. This assumes that the thresholds data contains one year of daily
+        data (no leap year) and reindexes the thresholds data to match the
+        time steps in the input data as well as overriding the time metadata to
+        match the input data.
+
+        Parameters
+        ----------
+        input_md : teca_metadata
+            Metadata object from input data to synchronize with
+        input_node : teca.teca_algorithm
+            Input connection with thresholds data to synchronize
+
+        Returns
+        -------
+        sync : teca.teca_python_algorithm
+            Configured time synchronization pipeline
+        """
+        # Sync thresholds data with input data time steps
+        reindex_thresholds = teca.teca_temporal_index_select.New()
+        reindex_thresholds.set_input_connection(
+            input_node.get_output_port())
+        day_index_list = generate_day_index_list(input_md)
+        reindex_thresholds.set_indices(day_index_list)
+
+        time_override = teca.teca_time_metadata_override.New()
+        time_override.set_time_values(input_md['coordinates']['t'])
+        time_override.set_calendar(input_md['attributes']['time']['calendar'])
+        time_override.set_units(input_md['attributes']['time']['units'])
+        time_override.set_input_connection(reindex_thresholds.get_output_port())
+
+        return time_override
+
+    def _create_anomaly_detector(self, input_node, mesh_dim_active):
+        """
+        Create and configure geopotential height anomaly detection pipeline.
+
+        Parameters
+        ----------
+        input_node : teca.teca_algorithm
+            Input connection with required variables (e.g., mesh join output)
+        input_md : teca_metadata
+            Metadata object for input data to synchronize with
+
+        Returns
+        -------
+        detector : teca.teca_derived_quantity
+            Configured anomaly detector
+        """
+        if self.geopotential_height_variable is None:
+            raise RuntimeError(
+                "Geopotential height variable name must be set before creating anomaly detector. "
+                "Call set_geopotential_height_variable() to configure.")
+        if self.geopotential_height_threshold_variable is None:
+            raise RuntimeError(
+                "Geopotential height threshold variable name must be set before creating anomaly detector. "
+                "Call set_geopotential_height_threshold_variable() to configure.")
+        detector = teca.teca_derived_quantity.New()
+        detector.set_operation_name('detect_geopotential_height_anomaly')
+        detector.set_input_connection(input_node.get_output_port())
+
+        dependent_vars = [
+            self.geopotential_height_variable,
+            self.geopotential_height_threshold_variable
+        ]
+        detector.set_dependent_variables(dependent_vars)
+
+        out_atts = teca.teca_array_attributes(
+            teca.teca_char_array_code.get(), teca.teca_array_attributes.point_centering,
+            0, mesh_dim_active, 'unitless',
+            self.mask_varname,
+            'a binary mask indicating whether location is geopotential height anomaly',
+            None)
+        detector.append_derived_variable(self.mask_varname, out_atts)
+
+        detector_op = DetectGeopotentialHeightAnomalyOp(
+            self.geopotential_height_variable,
+            self.geopotential_height_threshold_variable,
+            self.mask_varname)
+        detector.set_execute_callback(detector_op)
+
+        return detector
+
+    def _create_latitude_range_filter(self, input_node):
+        """
+        Create and configure latitude range filter.
+
+        Parameters
+        ----------
+        input_node : teca.teca_algorithm
+            Input connection
+
+        Returns
+        -------
+        lat_filter : teca.teca_latitude_range_filter
+            Configured latitude range filter
+        """
+        latitude_range_filter = teca.teca_latitude_range_filter.New()
+        latitude_range_filter.set_input_connection(input_node.get_output_port())
+        latitude_range_filter.set_filtered_variables([self.mask_varname])
+        latitude_range_filter.set_min_lat(self.min_latitude)
+        latitude_range_filter.set_max_lat(self.max_latitude)
+        latitude_range_filter.set_variable_postfix('')
+
+        return latitude_range_filter
+
+    def _create_component_area_filter(self, input_node):
+        """
+        Create connected component detection and area filtering pipeline.
+
+        Parameters
+        ----------
+        input_node : teca.teca_algorithm
+            Input connection
+        segmentation_varname : str
+            Name of segmentation variable
+
+        Returns
+        -------
+        area_filter : teca.teca_component_area_filter
+            Final component filter
+        """
+
+        # Connected component labeling
+        connected_components = teca.teca_connected_components.New()
+        connected_components.set_input_connection(input_node.get_output_port())
+        connected_components.set_segmentation_variable(self.mask_varname)
+        connected_components.set_component_variable(self.component_varname)
+
+        # Compute component areas
+        area_calc = teca.teca_2d_component_area.New()
+        area_calc.set_input_connection(connected_components.get_output_port())
+        area_calc.set_component_variable(self.component_varname)
+
+        # Filter by minimum area
+        area_filter = teca.teca_component_area_filter.New()
+        area_filter.set_input_connection(area_calc.get_output_port())
+        area_filter.set_component_variable(self.component_varname)
+        area_filter.set_low_area_threshold(self.min_area)
+
+        return area_filter
+
+    def _create_binarizer(self, input_node, mesh_dim_active):
+        """
+        Create and configure component ID binarization pipeline.
+
+        Parameters
+        ----------
+        input_node : teca.teca_algorithm
+            Input connection
+
+        Returns
+        -------
+        binarizer : teca.teca_derived_quantity
+            Configured binarization operator
+        """
+        binarize_op = teca.teca_derived_quantity.New()
+        binarize_op.set_operation_name('binarize_component_ids')
+        binarize_op.set_input_connection(input_node.get_output_port())
+        binarize_op.set_dependent_variables([self.component_varname])
+
+        # Configure output array attributes
+        out_atts = teca.teca_array_attributes(
+            teca.teca_char_array_code.get(), teca.teca_array_attributes.point_centering,
+            0, mesh_dim_active, 'unitless',
+            self.binarized_component_varname,
+            'a binary mask indicating blocking event candidates',
+            None)
+        binarize_op.append_derived_variable(self.binarized_component_varname, out_atts)
+
+        # Set the binarization callback
+        binarize_callback = BinarizeComponentIdsOp(self.component_varname, self.binarized_component_varname)
+        binarize_op.set_execute_callback(binarize_callback)
+
+        return binarize_op
+
+    def _build_detection_pipeline(self):
+        """
+        Build the blocking event detection pipeline.
+        """
+        if self.input_node is None:
+            raise RuntimeError(
+                "Input connection must be set before building the pipeline. "
+                "Call set_input_node() to configure the input data source.")
+        if self.thresholds_reader is None:
+            raise RuntimeError(
+                "Thresholds reader must be set before building the pipeline. "
+                "Call set_thresholds_filename() or set_thresholds_regex() to configure.")
+        if self.geopotential_height_variable is None:
+            raise RuntimeError(
+                "Geopotential height variable name must be set before building the pipeline. "
+                "Call set_geopotential_height_variable() to configure.")
+        if self.geopotential_height_threshold_variable is None:
+            raise RuntimeError(
+                "Geopotential height threshold variable name must be set before building the pipeline. "
+                "Call set_geopotential_height_threshold_variable() to configure.")
+
+        # Configure thresholds reader
+        self._configure_thresholds_reader()
+
+        # Normalize thresholds coordinates
+        normalize_threshold_coordinates = teca.teca_normalize_coordinates.New()
+        normalize_threshold_coordinates.set_input_connection(
+            self.thresholds_reader.get_output_port())
+
+        # Get and validate metadata
+        input_md = self._get_and_validate_metadata(
+            self.input_node,
+            [self.geopotential_height_variable])
+        thresholds_md = self._get_and_validate_metadata(
+            normalize_threshold_coordinates,
+            [self.geopotential_height_threshold_variable])
+
+        # Validate thresholds file contains one year of daily data
+        if not validate_thresholds_file(thresholds_md, rank):
+            raise RuntimeError(
+                "Thresholds file validation failed: the thresholds data must contain "
+                "exactly one year of daily data (365 time steps, no leap year). "
+                "Please verify your thresholds file.")
+
+        # Create pressure level slice source and extract slice from input data
+        extract_slice = self._create_slice_extractor(
+            input_md, self.input_node)
+
+        # Get mesh_dim_active from input metadata (note this must be done after
+        # extracting the slice to account for the removed z-axis)
+        try:
+            input_md = extract_slice.update_metadata()
+        except Exception as e:
+            raise RuntimeError(
+                f'Failed to update metadata after extracting pressure level slice. '
+                f'Error: {e}')
+
+        in_atts = teca.teca_array_attributes(
+            input_md['attributes'][self.geopotential_height_variable])
+        mesh_dim_active = in_atts.mesh_dim_active
+
+        # Sync thresholds data with input data time steps
+        threshold_sync = self._create_thresholds_synchronization(
+            input_md, normalize_threshold_coordinates)
+
+        # Combine the two meshes
+        mesh_join = teca.teca_mesh_join.New()
+        mesh_join.set_input_connection(0, extract_slice.get_output_port())
+        mesh_join.set_input_connection(1, threshold_sync.get_output_port())
+
+        # Detect geopotential height anomalies
+        anomaly_detector = self._create_anomaly_detector(
+            mesh_join, mesh_dim_active)
+
+        # Filter by latitude range
+        latitude_range_filter = self._create_latitude_range_filter(
+            anomaly_detector)
+
+        # Perform connected component labeling and area filtering
+        component_area_filter = self._create_component_area_filter(
+            latitude_range_filter)
+
+        # Binarize component IDs if requested
+        if self.discard_unique_region_ids:
+            binarizer = self._create_binarizer(
+                component_area_filter, mesh_dim_active)
+            self.pipeline_tail = binarizer
+        else:
+            self.pipeline_tail = component_area_filter
 
 def create_argument_parser():
     """
@@ -101,17 +776,20 @@ def create_argument_parser():
         required=False, default='threshold_H',
         help='name of variable with geopotential height threshold')
 
-    parser.add_argument('--x_axis_variable', type=str, default='lon',
-        required=False, help='name of x coordinate variable')
+    parser.add_argument('--x_axis_variable', type=str,
+        default=DEFAULT_X_AXIS_VARIABLE, required=False,
+        help='name of x coordinate variable')
 
-    parser.add_argument('--y_axis_variable', type=str, default='lat',
-         required=False, help='name of y coordinate variable')
+    parser.add_argument('--y_axis_variable', type=str,
+        default=DEFAULT_Y_AXIS_VARIABLE, required=False,
+        help='name of y coordinate variable')
 
-    parser.add_argument('--z_axis_variable', type=str, default='lev',
-         required=False, help='name of z coordinate variable')
+    parser.add_argument('--z_axis_variable', type=str,
+        default='lev', required=False, help='name of z coordinate variable')
 
-    parser.add_argument('--t_axis_variable', type=str, default = 'time',
-         required=False, help='time dimension name')
+    parser.add_argument('--t_axis_variable', type=str,
+        default=DEFAULT_T_AXIS_VARIABLE, required=False,
+        help='time dimension name')
 
     # Output configuration
     parser.add_argument('--output_file', type=str, required=True,
@@ -149,23 +827,24 @@ def create_argument_parser():
     parser.add_argument('--save_mask', action='store_true',
         help='save the geopotential height anomaly mask to the output file')
 
-    parser.add_argument('--discard-unique-region-ids', action='store_true',
+    parser.add_argument('--discard_unique_region_ids', action='store_true',
         help='if specified, binarize the output, i.e., write a mask that '
              'contains one if location is blocking event candidate, otherwise '
              'zero')
 
     # Detection parameters
-    parser.add_argument('--pressure_level', type=float, default=500.0,
-        required=False,
-        help='pressure level in hPa for blocking detection (standard: 500 hPa)')
+    parser.add_argument('--pressure_level', type=float,
+        default=DEFAULT_PRESSURE_LEVEL, required=False,
+        help=f'pressure level in hPa for blocking detection '
+             f'standard: {DEFAULT_PRESSURE_LEVEL} hPa)')
 
-    parser.add_argument('--min_latitude', type=float, default=25.0,
-        required=False,
-        help='minimum absolute latitude for blocking detection (equatorward, '
+    parser.add_argument('--min_latitude', type=float,
+        default=DEFAULT_MIN_LATITUDE, required=False,
+        help=f'minimum absolute latitude for blocking detection (equatorward, '
              'applies to both hemispheres)')
 
-    parser.add_argument('--max_latitude', type=float, default=75.0,
-        required=False,
+    parser.add_argument('--max_latitude', type=float,
+        default=DEFAULT_MAX_LATITUDE,required=False,
         help='maximum absolute latitude for blocking detection (poleward, '
              'applies to both hemispheres)')
 
@@ -191,8 +870,33 @@ def validate_arguments(args, rank):
     rank : int
         MPI rank for conditional error reporting
     """
+    # Validate variable names are not empty
+    if not args.geopotential_height_variable or not args.geopotential_height_variable.strip():
+        report_error_and_exit('geopotential_height_variable cannot be empty', rank)
+
+    if not args.geopotential_height_threshold_variable or not args.geopotential_height_threshold_variable.strip():
+        report_error_and_exit('geopotential_height_threshold_variable cannot be empty', rank)
+
+    if not args.x_axis_variable or not args.x_axis_variable.strip():
+        report_error_and_exit('x_axis_variable cannot be empty', rank)
+
+    if not args.y_axis_variable or not args.y_axis_variable.strip():
+        report_error_and_exit('y_axis_variable cannot be empty', rank)
+
+    if not args.z_axis_variable or not args.z_axis_variable.strip():
+        report_error_and_exit('z_axis_variable cannot be empty', rank)
+
+    if not args.t_axis_variable or not args.t_axis_variable.strip():
+        report_error_and_exit('t_axis_variable cannot be empty', rank)
+
+    if not args.output_file or not args.output_file.strip():
+        report_error_and_exit('output_file cannot be empty', rank)
+
+    # Validate file layout and steps
     if args.file_layout == 'number_of_steps' and args.steps_per_file <= 0:
-        report_error_and_exit('steps_per_file must be positive when using number_of_steps layout', rank)
+        report_error_and_exit(
+            'steps_per_file must be positive when using number_of_steps layout',
+            rank)
 
     if args.first_step < 0:
         report_error_and_exit('first_step cannot be negative', rank)
@@ -256,331 +960,6 @@ def create_input_reader(args):
     return reader
 
 
-def create_thresholds_reader(args):
-    """
-    Configure and return the thresholds data reader.
-
-    Parameters
-    ----------
-    args : argparse.Namespace
-        Command-line arguments containing thresholds configuration
-
-    Returns
-    -------
-    reader : teca.teca_cf_reader or teca.teca_multi_cf_reader
-        Configured reader for thresholds data
-    """
-    if args.thresholds_file:
-        reader = teca.teca_multi_cf_reader.New()
-        reader.set_input_file(args.thresholds_file)
-    else:
-        reader = teca.teca_cf_reader.New()
-        reader.set_files_regex(args.thresholds_regex)
-
-    reader.set_x_axis_variable(args.x_axis_variable)
-    reader.set_y_axis_variable(args.y_axis_variable)
-    reader.set_periodic_in_x(True)
-    # Note: teca_cf_reader has set_periodic_in_y(),
-    # but teca_multi_cf_reader does not
-    if hasattr(reader, 'set_periodic_in_y'):
-        reader.set_periodic_in_y(False)
-
-    return reader
-
-
-def get_and_validate_metadata(input_node, rank, required_vars=None):
-    """
-    Get metadata and validate it.
-
-    Parameters
-    ----------
-    input_node : teca.teca_algorithm
-        Node from teca pipeline to get metadata from
-    rank : int
-        MPI rank for conditional error reporting
-    required_vars : list of str, optional
-        List of required variable names for validation
-        If None, no variable validation is performed (default: None)
-
-    Returns
-    -------
-    metadata : teca_metadata
-        Validated metadata object
-    """
-    try:
-        metadata = input_node.update_metadata()
-    except Exception as e:
-        report_error_and_exit(f'Failed to read metadata: {e}', rank)
-
-    # Validate required variables for input data
-    if required_vars is not None:
-        try:
-            available_vars = metadata.get('variables')
-        except:
-            available_vars = []
-        missing_vars = [var for var in required_vars if var not in available_vars]
-        if missing_vars:
-            report_error_and_exit(
-                f'Required variable(s) {missing_vars} not found in input.\n'
-                f'       Available variables: {available_vars}', rank)
-
-    return metadata
-
-
-def create_slice_extractor(args, input_md, input_node):
-    """
-    Create and configure a slice source for extracting pressure level.
-
-    Parameters
-    ----------
-    args : argparse.Namespace
-        Contains pressure_level parameter
-    input_md : teca_metadata
-        Input metadata object containing coordinates and bounds
-
-    Returns
-    -------
-    source : teca.teca_cartesian_mesh_source
-        Configured slice source
-    """
-    input_coords = input_md['coordinates']
-    x = input_coords['x']
-    y = input_coords['y']
-    t = input_coords['t']
-    bounds = input_md['bounds']
-
-    slice_source = teca.teca_cartesian_mesh_source.New()
-    slice_source.set_bounds([
-        bounds[0], bounds[1], bounds[2], bounds[3],
-        args.pressure_level, args.pressure_level, float(t[0]), float(t[-1])])
-    slice_source.set_whole_extents([
-        0, x.size-1, 0, y.size-1, 0, 0, 0, t.size-1])
-    slice_source.set_periodic_in_x(True)
-    slice_source.set_periodic_in_y(False)
-    calendar = input_md['attributes']['time']['calendar']
-    units = input_md['attributes']['time']['units']
-    slice_source.set_calendar(calendar, units)
-
-    extract_slice = teca.teca_cartesian_mesh_regrid.New()
-    extract_slice.set_interpolation_mode_linear()
-    extract_slice.set_input_connection(0, slice_source.get_output_port())
-    extract_slice.set_input_connection(1, input_node.get_output_port())
-
-    return extract_slice
-
-
-def create_thresholds_synchronization(input_md, input_node):
-    """
-    Create and configure time synchronization for thresholds with input
-    data. This assumes that the thresholds data contains one year of daily
-    data (no leap year) and reindexes the thresholds data to match the
-    time steps in the input data as well as overriding the time metadata to
-    match the input data.
-
-    Parameters
-    ----------
-    input_md : teca_metadata
-        Metadata object from input data to synchronize with
-    input_node : teca.teca_algorithm
-        Input connection with thresholds data to synchronize
-
-    Returns
-    -------
-    sync : teca.teca_time_step_synchronizer
-        Configured time synchronizer
-    """
-    # Sync thresholds data with input data time steps
-    reindex_thresholds = teca.teca_temporal_index_select.New()
-    reindex_thresholds.set_input_connection(
-        input_node.get_output_port())
-    day_index_list = generate_day_index_list(input_md)
-    reindex_thresholds.set_indices(day_index_list)
-
-    time_override = teca.teca_time_metadata_override.New()
-    time_override.set_time_values(input_md['coordinates']['t'])
-    time_override.set_calendar(input_md['attributes']['time']['calendar'])
-    time_override.set_units(input_md['attributes']['time']['units'])
-    time_override.set_input_connection(reindex_thresholds.get_output_port())
-
-    return time_override
-
-
-def create_anomaly_detector(args, input_node, rank):
-    """
-    Create and configure geopotential height anomaly detection pipeline.
-
-    Parameters
-    ----------
-    args : argparse.Namespace
-        Contains variable names
-    input_node : teca.teca_algorithm
-        Input connection with required variables (e.g., mesh join output)
-    rank : int
-        MPI rank for error reporting
-
-    Returns
-    -------
-    detector : teca.teca_derived_quantity
-        Configured anomaly detector
-    mask_varname : str
-        Name of output mask variable
-    """
-    detector = teca.teca_derived_quantity.New()
-    detector.set_operation_name('detect_geopotential_height_anomaly')
-    detector.set_input_connection(input_node.get_output_port())
-
-    dependent_vars = [
-        args.geopotential_height_variable,
-        args.geopotential_height_threshold_variable
-    ]
-    mask_varname = 'geopotential_height_anomaly_mask'
-    detector.set_dependent_variables(dependent_vars)
-
-    # Get metadata for attribute configuration
-    try:
-        input_md = input_node.update_metadata()
-    except Exception as e:
-        report_error_and_exit(f'Failed to read mesh join metadata: {e}', rank)
-
-    in_atts = teca.teca_array_attributes(input_md['attributes'][dependent_vars[0]])
-    out_atts = teca.teca_array_attributes(
-        teca.teca_char_array_code.get(), teca.teca_array_attributes.point_centering,
-        0, in_atts.mesh_dim_active, 'unitless',
-        mask_varname,
-        'a binary mask indicating whether location is geopotential height anomaly',
-        None)
-    detector.append_derived_variable(mask_varname, out_atts)
-
-    detector_op = DetectGeopotentialHeightAnomalyOp(
-        args.geopotential_height_variable,
-        args.geopotential_height_threshold_variable,
-        mask_varname)
-    detector.set_execute_callback(detector_op)
-
-    return detector, mask_varname
-
-
-def create_latitude_range_filter(args, input_node, mask_varname):
-    """
-    Create and configure latitude range filter.
-
-    Parameters
-    ----------
-    args : argparse.Namespace
-        Contains min_latitude and max_latitude
-    input_node : teca.teca_algorithm
-        Input connection
-    mask_varname : str
-        Variable to filter
-
-    Returns
-    -------
-    lat_filter : teca.teca_latitude_range_filter
-        Configured latitude range filter
-    """
-    latitude_range_filter = teca.teca_latitude_range_filter.New()
-    latitude_range_filter.set_input_connection(input_node.get_output_port())
-    latitude_range_filter.set_filtered_variables([mask_varname])
-    latitude_range_filter.set_min_lat(args.min_latitude)
-    latitude_range_filter.set_max_lat(args.max_latitude)
-    latitude_range_filter.set_variable_postfix('')
-
-    return latitude_range_filter
-
-
-def create_component_area_filter(args, input_node, segmentation_varname):
-    """
-    Create connected component detection and area filtering pipeline.
-
-    Parameters
-    ----------
-    args : argparse.Namespace
-        Contains min_area parameter
-    input_node : teca.teca_algorithm
-        Input connection
-    segmentation_varname : str
-        Name of segmentation variable
-
-    Returns
-    -------
-    area_filter : teca.teca_component_area_filter
-        Final component filter
-    component_varname : str
-        Name of component variable
-    """
-    component_varname = 'blocking_event_id'
-
-    # Connected component labeling
-    connected_components = teca.teca_connected_components.New()
-    connected_components.set_input_connection(input_node.get_output_port())
-    connected_components.set_segmentation_variable(segmentation_varname)
-    connected_components.set_component_variable(component_varname)
-
-    # Compute component areas
-    area_calc = teca.teca_2d_component_area.New()
-    area_calc.set_input_connection(connected_components.get_output_port())
-    area_calc.set_component_variable(component_varname)
-
-    # Filter by minimum area
-    area_filter = teca.teca_component_area_filter.New()
-    area_filter.set_input_connection(area_calc.get_output_port())
-    area_filter.set_component_variable(component_varname)
-    area_filter.set_low_area_threshold(args.min_area)
-
-    return area_filter, component_varname
-
-
-def create_binarizer(args, input_node, component_varname, rank):
-    """
-    Create and configure component ID binarization pipeline.
-
-    Parameters
-    ----------
-    args : argparse.Namespace
-        Contains command-line arguments
-    input_node : teca.teca_algorithm
-        Input connection
-    component_varname : str
-        Name of component variable to binarize
-    rank : int
-        MPI rank for error reporting
-
-    Returns
-    -------
-    binarizer : teca.teca_derived_quantity
-        Configured binarization operator
-    binary_varname : str
-        Name of binary output variable
-    """
-    binary_varname = 'blocking_event_mask'
-
-    binarize_op = teca.teca_derived_quantity.New()
-    binarize_op.set_operation_name('binarize_component_ids')
-    binarize_op.set_input_connection(input_node.get_output_port())
-    binarize_op.set_dependent_variables([component_varname])
-
-    # Configure output array attributes
-    try:
-        input_md = input_node.update_metadata()
-        in_atts = teca.teca_array_attributes(input_md['attributes'][component_varname])
-        out_atts = teca.teca_array_attributes(
-            teca.teca_char_array_code.get(), teca.teca_array_attributes.point_centering,
-            0, in_atts.mesh_dim_active, 'unitless',
-            binary_varname,
-            'a binary mask indicating blocking event candidates',
-            None)
-        binarize_op.append_derived_variable(binary_varname, out_atts)
-    except Exception as e:
-        if rank == 0:
-            print(f"Warning: Could not configure binary mask attributes: {e}")
-
-    # Set the binarization callback
-    binarize_callback = BinarizeComponentIdsOp(component_varname, binary_varname)
-    binarize_op.set_execute_callback(binarize_callback)
-
-    return binarize_op, binary_varname
-
-
 def create_writer(args, input_node, mask_varname, component_varname):
     """
     Configure and return the NetCDF writer.
@@ -641,69 +1020,38 @@ def build_blocking_event_detection_pipeline(args, rank):
     writer : teca.teca_cf_writer
         Configured pipeline ready to execute
     """
-    # Setup readers
+    # Setup reader
     input_reader = create_input_reader(args)
-    thresholds_reader = create_thresholds_reader(args)
 
     # Normalize coordinates
     normalize_input_coordinates = teca.teca_normalize_coordinates.New()
     normalize_input_coordinates.set_input_connection(
         input_reader.get_output_port())
 
-    normalize_threshold_coordinates = teca.teca_normalize_coordinates.New()
-    normalize_threshold_coordinates.set_input_connection(
-        thresholds_reader.get_output_port())
-
-    # Get and validate metadata
-    input_md = get_and_validate_metadata(
-        normalize_input_coordinates, rank,
-        [args.geopotential_height_variable])
-    thresholds_md = get_and_validate_metadata(
-        normalize_threshold_coordinates, rank,
-        [args.geopotential_height_threshold_variable])
-
-    # Validate thresholds file contains one year of daily data
-    if not validate_thresholds_file(thresholds_md, rank):
-        sys.exit(-1)
-
-    # Create pressure level slice source and extract slice from input data
-    extract_slice = create_slice_extractor(
-        args, input_md, normalize_input_coordinates)
-
-    # Sync thresholds data with input data time steps
-    threshold_sync = create_thresholds_synchronization(
-        input_md, normalize_threshold_coordinates)
-
-    # Combine the two meshes
-    mesh_join = teca.teca_mesh_join.New()
-    mesh_join.set_input_connection(0, extract_slice.get_output_port())
-    mesh_join.set_input_connection(1, threshold_sync.get_output_port())
-
-    # Detect geopotential height anomalies
-    anomaly_detector, mask_varname = create_anomaly_detector(
-        args, mesh_join, rank)
-
-    # Filter by latitude range
-    latitude_range_filter = create_latitude_range_filter(
-        args, anomaly_detector, mask_varname)
-
-    # Perform connected component labeling and area filtering
-    component_area_filter, component_varname = create_component_area_filter(
-        args, latitude_range_filter, mask_varname)
-
-    # Binarize component IDs if requested
-    if args.discard_unique_region_ids:
-        binarizer, binary_varname = create_binarizer(
-            args, component_area_filter, component_varname, rank)
-        final_node = binarizer
-        output_component_varname = binary_varname
-    else:
-        final_node = component_area_filter
-        output_component_varname = component_varname
+    # Create and initialize blocking event detector
+    detect_blobs = teca_blocking_event_detect_blobs()
+    detect_blobs.set_input_node(normalize_input_coordinates)
+    if args.thresholds_file:
+        detect_blobs.set_thresholds_filename(args.thresholds_file)
+    if args.thresholds_regex:
+        detect_blobs.set_thresholds_regex(args.thresholds_regex)
+    detect_blobs.set_thresholds_x_axis_variable(args.x_axis_variable)
+    detect_blobs.set_thresholds_y_axis_variable(args.y_axis_variable)
+    detect_blobs.set_thresholds_t_axis_variable(args.t_axis_variable)
+    detect_blobs.set_geopotential_height_variable(
+        args.geopotential_height_variable)
+    detect_blobs.set_geopotential_height_threshold_variable(
+        args.geopotential_height_threshold_variable)
+    detect_blobs.set_pressure_level(args.pressure_level)
+    detect_blobs.set_min_latitude(args.min_latitude)
+    detect_blobs.set_max_latitude(args.max_latitude)
+    detect_blobs.set_min_area(args.min_area)
+    detect_blobs.set_discard_unique_region_ids(args.discard_unique_region_ids)
 
     # Configure the writer
     writer = create_writer(
-        args, final_node, mask_varname, output_component_varname)
+        args, detect_blobs.get_output_node(), detect_blobs.get_mask_variable_name(),
+        detect_blobs.get_blocking_event_variable_name())
 
     return writer
 
