@@ -54,6 +54,14 @@ from teca_blocking_event_helper_functions import (
     report_error_and_exit
 )
 
+# Default variable names
+DEFAULT_X_AXIS_VARIABLE = 'lon'
+DEFAULT_Y_AXIS_VARIABLE = 'lat'
+DEFAULT_T_AXIS_VARIABLE = 'time'
+DEFAULT_BLOCKING_EVENT_ID_VARIABLE = 'blocking_event_id'
+DEFAULT_MIN_OVERLAP_PREV = 20.0
+DEFAULT_BACKGROUND_ID = 0
+
 
 class generate_tracking_matches_table_algorithm(teca.teca_python_algorithm):
     """
@@ -241,6 +249,501 @@ class generate_tracking_matches_table_algorithm(teca.teca_python_algorithm):
         return out_table
 
 
+class teca_blocking_event_create_overlap_table:
+    """
+    A class that encapsulates the blocking event overlap table creation pipeline.
+
+    This class provides a reusable component for creating an overlap table that
+    tracks blocking events across consecutive time steps. It can accept input from
+    any TECA algorithm and provide output to any TECA algorithm.
+    """
+    def __init__(self):
+        """
+        Initialize the overlap table creation pipeline.
+
+        Creates a new instance with default parameter values. All configuration
+        must be set using the setter methods before building the pipeline.
+        """
+        # Placeholders for input node and pipeline
+        self.input_node = None
+        self.pipeline_tail = None
+
+        # Variable names
+        self.blocking_event_id_variable = DEFAULT_BLOCKING_EVENT_ID_VARIABLE
+
+        # Tracking parameters
+        self.min_overlap_prev = DEFAULT_MIN_OVERLAP_PREV
+        self.background_id = DEFAULT_BACKGROUND_ID
+        self.verbose = False
+        self.n_threads = 1
+
+        # Time range
+        self.first_step = 0
+        self.last_step = -1
+
+    def _ensure_pipeline_not_built(self) -> None:
+        """
+        Ensure that the pipeline has not been built yet.
+
+        Raises
+        ------
+        RuntimeError
+            If the pipeline has already been built
+        """
+        if self.pipeline_tail is not None:
+            raise RuntimeError(
+                "Parameters can only be set before pipeline is built.")
+
+    def set_blocking_event_id_variable(self, variable_name: str) -> None:
+        """
+        Set the blocking event ID variable name.
+
+        Parameters
+        ----------
+        variable_name : str
+            Name of blocking event ID variable
+        """
+        self._ensure_pipeline_not_built()
+        if not variable_name:
+            raise ValueError("variable_name cannot be empty")
+        self.blocking_event_id_variable = variable_name
+
+    def set_min_overlap_prev(self, min_overlap_prev: float) -> None:
+        """
+        Set the minimum overlap percentage with previous time step.
+
+        Parameters
+        ----------
+        min_overlap_prev : float
+            Minimum overlap percentage (0-100)
+        """
+        self._ensure_pipeline_not_built()
+        if not (0 <= min_overlap_prev <= 100):
+            raise ValueError(
+                f"min_overlap_prev must be in range [0, 100], got {min_overlap_prev}")
+        self.min_overlap_prev = min_overlap_prev
+
+    def set_background_id(self, background_id: int) -> None:
+        """
+        Set the background ID value.
+
+        Parameters
+        ----------
+        background_id : int
+            Background ID value
+        """
+        self._ensure_pipeline_not_built()
+        self.background_id = background_id
+
+    def set_verbose(self, verbose: bool) -> None:
+        """
+        Set the verbosity flag.
+
+        Parameters
+        ----------
+        verbose : bool
+            If True, enable verbose output
+        """
+        self._ensure_pipeline_not_built()
+        self.verbose = verbose
+
+    def set_n_threads(self, n_threads: int) -> None:
+        """
+        Set the number of threads for the table reducer.
+
+        Parameters
+        ----------
+        n_threads : int
+            Number of threads
+        """
+        self._ensure_pipeline_not_built()
+        if n_threads < 1:
+            raise ValueError(f"n_threads must be at least 1, got {n_threads}")
+        self.n_threads = n_threads
+
+    def set_first_step(self, first_step: int) -> None:
+        """
+        Set the first time step to process.
+
+        Parameters
+        ----------
+        first_step : int
+            First time step
+        """
+        self._ensure_pipeline_not_built()
+        if first_step < 0:
+            raise ValueError(f"first_step cannot be negative, got {first_step}")
+        self.first_step = first_step
+
+    def set_last_step(self, last_step: int) -> None:
+        """
+        Set the last time step to process.
+
+        Parameters
+        ----------
+        last_step : int
+            Last time step (-1 means process until second-to-last)
+        """
+        self._ensure_pipeline_not_built()
+        if last_step != -1 and last_step < self.first_step:
+            raise ValueError(
+                f"last_step must be >= first_step or -1, got {last_step}")
+        self.last_step = last_step
+
+    def set_input_node(self, input_node: 'teca.teca_algorithm') -> None:
+        """
+        Set the input node for the overlap table creation pipeline.
+
+        IMPORTANT: Differing from typical TECA algorithms, we need an
+        input node and not an input port because we need to be able to
+        call update_metadata() on the input node to get metadata for
+        building the pipeline.
+
+        Parameters
+        ----------
+        input_node : teca.teca_algorithm
+            Input node for the pipeline
+        """
+        self._ensure_pipeline_not_built()
+        if input_node is None:
+            raise ValueError("input_node cannot be None")
+        self.input_node = input_node
+
+    def get_output_node(self) -> 'teca.teca_algorithm':
+        """
+        Get the output node of the overlap table creation pipeline.
+
+        Returns
+        -------
+        output_node : teca.teca_algorithm
+            Output node of the pipeline
+        """
+        if self.pipeline_tail is None:
+            self._build_pipeline()
+        return self.pipeline_tail
+
+    def get_output_port(self) -> 'teca.teca_algorithm.OutputPort':
+        """
+        Get the output port of the overlap table creation pipeline.
+
+        Returns
+        -------
+        output_port : teca.teca_algorithm.OutputPort
+            Output port of the pipeline
+        """
+        if self.pipeline_tail is None:
+            self._build_pipeline()
+        return self.pipeline_tail.get_output_port()
+
+    def get_first_step(self) -> int:
+        """
+        Get the first time step being processed.
+
+        Returns
+        -------
+        first_step : int
+            First time step
+        """
+        if self.pipeline_tail is None:
+            self._build_pipeline()
+        return self._first_step
+
+    def get_last_step(self) -> int:
+        """
+        Get the last time step being processed.
+
+        Returns
+        -------
+        last_step : int
+            Last time step
+        """
+        if self.pipeline_tail is None:
+            self._build_pipeline()
+        return self._last_step
+
+    def _get_and_validate_metadata(self, input_node, required_vars=None):
+        """
+        Get metadata and validate it.
+
+        Parameters
+        ----------
+        input_node : teca.teca_algorithm
+            Node from teca pipeline to get metadata from
+        required_vars : list of str, optional
+            List of required variable names for validation
+            If None, no variable validation is performed (default: None)
+
+        Returns
+        -------
+        metadata : teca_metadata
+            Validated metadata object
+        """
+        try:
+            metadata = input_node.update_metadata()
+        except Exception as e:
+            raise RuntimeError(
+                f'Failed to read metadata from input node. '
+                f'This may indicate an issue with the input data source. Error: {e}')
+
+        # Validate required variables for input data
+        if required_vars is not None:
+            try:
+                available_vars = metadata.get('variables')
+            except Exception:
+                available_vars = []
+            missing_vars = [var for var in required_vars if var not in available_vars]
+            if missing_vars:
+                raise RuntimeError(
+                    f'Required variable(s) {missing_vars} not found in input. '
+                    f'Available variables: {available_vars}. '
+                    f'Please check that your input contains the required variables.')
+
+        return metadata
+
+    def _get_time_range(self, input_md):
+        """
+        Determine the time range for processing.
+
+        Parameters
+        ----------
+        input_md : teca_metadata
+            Input metadata containing time coordinate information
+
+        Returns
+        -------
+        first_step : int
+            First time step to process
+        last_step : int
+            Last time step to process (inclusive)
+        """
+        input_coords = input_md['coordinates']
+        t = input_coords['t']
+
+        first_step = self.first_step
+        # Process consecutive time step pairs (t, t+1), so the last valid starting
+        # index is size-2 (allowing access to both t and t+1 at indices size-2 and size-1)
+        last_step = self.last_step if self.last_step >= 0 else t.size - 2
+
+        return first_step, last_step
+
+    def _create_temporal_reindexing(self, input_node, first_step, last_step):
+        """
+        Create temporal reindexing to get the next time step data.
+
+        Parameters
+        ----------
+        input_node : teca.teca_algorithm
+            Input connection
+        first_step : int
+            First time step to process
+        last_step : int
+            Last time step to process
+
+        Returns
+        -------
+        rename_var : teca.teca_rename_variables
+            Node that provides the next time step data with renamed variables
+        """
+        # Shift by one time step to get the next time step; timestep range is
+        # inclusive, so need to add one to last_step
+        indices_next = list(range(first_step + 1, last_step + 1 + 1))
+        reindex_next = teca.teca_temporal_index_select.New()
+        reindex_next.set_input_connection(input_node.get_output_port())
+        reindex_next.set_indices(indices_next)
+
+        # Rename the blocking event ID variable for the next time step
+        rename_var = teca.teca_rename_variables.New()
+        rename_var.set_original_variable_names([self.blocking_event_id_variable])
+        rename_var.set_new_variable_names([self.blocking_event_id_variable + '_next'])
+        rename_var.set_input_connection(reindex_next.get_output_port())
+
+        return rename_var
+
+    def _create_blob_intersection(self, current_node, next_node):
+        """
+        Create pipeline to compute intersection of blobs between time steps.
+
+        Parameters
+        ----------
+        current_node : teca.teca_algorithm
+            Input connection for current time step
+        next_node : teca.teca_algorithm
+            Input connection for next time step
+
+        Returns
+        -------
+        intersect_blobs : teca.teca_derived_quantity
+            Node that computes blob intersections
+        intersection_varname : str
+            Name of the intersection variable
+        """
+        # Join the two time steps into one dataset
+        mesh_join = teca.teca_mesh_join.New()
+        mesh_join.set_input_connection(0, current_node.get_output_port())
+        mesh_join.set_input_connection(1, next_node.get_output_port())
+
+        # Compute the intersection of the blocking events in the two time steps
+        intersect_blobs = teca.teca_derived_quantity.New()
+        intersect_blobs.set_operation_name('intersect_blobs')
+        intersect_blobs.set_input_connection(mesh_join.get_output_port())
+
+        dependent_vars = [
+            self.blocking_event_id_variable,
+            self.blocking_event_id_variable + '_next'
+        ]
+        intersection_varname = self.blocking_event_id_variable + '_intersection'
+        intersect_blobs.set_dependent_variables(dependent_vars)
+
+        # Get metadata for attribute configuration
+        try:
+            mesh_join_md = mesh_join.update_metadata()
+        except Exception as e:
+            raise RuntimeError(
+                f'Failed to read mesh join metadata: {e}')
+
+        in_atts = teca.teca_array_attributes(mesh_join_md['attributes'][dependent_vars[0]])
+        out_atts = teca.teca_array_attributes(
+            teca.teca_int_array_code.get(),
+            teca.teca_array_attributes.point_centering,
+            0, in_atts.mesh_dim_active, 'unitless',
+            intersection_varname,
+            'intersection of labeled regions', None)
+        intersect_blobs.append_derived_variable(intersection_varname, out_atts)
+
+        intersect_blobs_op = IntersectRegionsOp(
+            self.blocking_event_id_variable,
+            self.blocking_event_id_variable + '_next',
+            self.background_id,
+            intersection_varname)
+        intersect_blobs.set_execute_callback(intersect_blobs_op)
+
+        return intersect_blobs, intersection_varname
+
+    def _create_area_calculations(self, input_node, intersection_varname):
+        """
+        Create pipeline to compute areas of blobs and their intersections.
+
+        Parameters
+        ----------
+        input_node : teca.teca_algorithm
+            Input connection
+        intersection_varname : str
+            Name of the intersection variable
+
+        Returns
+        -------
+        intersection_area : teca.teca_2d_component_area
+            Node that computes intersection areas
+        """
+        # Compute the area of blobs in current time step
+        prev_blob_area = teca.teca_2d_component_area.New()
+        prev_blob_area.set_input_connection(input_node.get_output_port())
+        prev_blob_area.set_component_variable(self.blocking_event_id_variable)
+        prev_blob_area.set_background_id(self.background_id)
+        prev_blob_area.set_output_metadata_prefix('prev_blob_')
+
+        # Compute the area of the intersections of blobs between time steps
+        intersection_area = teca.teca_2d_component_area.New()
+        intersection_area.set_input_connection(prev_blob_area.get_output_port())
+        intersection_area.set_component_variable(intersection_varname)
+        intersection_area.set_background_id(self.background_id)
+        intersection_area.set_output_metadata_prefix('intersection_')
+
+        return intersection_area
+
+    def _create_tracking_table_generator(self, input_node):
+        """
+        Create the tracking matches table generator.
+
+        Parameters
+        ----------
+        input_node : teca.teca_algorithm
+            Input connection
+
+        Returns
+        -------
+        generator : generate_tracking_matches_table_algorithm
+            Configured tracking table generator
+        """
+        generator = generate_tracking_matches_table_algorithm.New()
+        generator.set_input_connection(input_node.get_output_port())
+        generator.set_min_overlap_prev(self.min_overlap_prev)
+        generator.set_background_id(self.background_id)
+        generator.set_prev_blob_prefix('prev_blob_')
+        generator.set_intersection_prefix('intersection_')
+        if self.verbose:
+            generator.set_verbose(True)
+
+        return generator
+
+    def _create_table_reducer_and_sorter(self, input_node):
+        """
+        Create the table reducer and sorter.
+
+        Parameters
+        ----------
+        input_node : teca.teca_algorithm
+            Input connection
+
+        Returns
+        -------
+        table_sorter : teca.teca_table_sort
+            Configured table sorter
+        """
+        # Create the table reducer
+        table_reduce = teca.teca_table_reduce.New()
+        table_reduce.set_thread_pool_size(self.n_threads)
+        table_reduce.set_input_connection(input_node.get_output_port())
+        table_reduce.set_start_index(self._first_step)
+        table_reduce.set_end_index(self._last_step)
+        if self.verbose:
+            table_reduce.set_verbose(1)
+
+        # Create the table sorter
+        table_sorter = teca.teca_table_sort.New()
+        table_sorter.set_input_connection(table_reduce.get_output_port())
+        table_sorter.set_index_column("time_index_1")
+
+        return table_sorter
+
+    def _build_pipeline(self):
+        """
+        Build the overlap table creation pipeline.
+        """
+        if self.input_node is None:
+            raise RuntimeError(
+                "Input connection must be set before building the pipeline. "
+                "Call set_input_node() to configure the input data source.")
+
+        # Get and validate metadata
+        input_md = self._get_and_validate_metadata(
+            self.input_node,
+            [self.blocking_event_id_variable])
+
+        # Determine time range
+        self._first_step, self._last_step = self._get_time_range(input_md)
+
+        # Create temporal reindexing for next time step
+        next_time_step_node = self._create_temporal_reindexing(
+            self.input_node, self._first_step, self._last_step)
+
+        # Compute blob intersections
+        intersect_blobs, intersection_varname = self._create_blob_intersection(
+            self.input_node, next_time_step_node)
+
+        # Compute areas
+        area_node = self._create_area_calculations(
+            intersect_blobs, intersection_varname)
+
+        # Generate tracking matches table
+        tracking_generator = self._create_tracking_table_generator(area_node)
+
+        # Create table reducer and sorter
+        table_sorter = self._create_table_reducer_and_sorter(tracking_generator)
+
+        self.pipeline_tail = table_sorter
+
+
 def create_argument_parser():
     """
     Create and configure the command-line argument parser.
@@ -270,16 +773,16 @@ def create_argument_parser():
 
     # Variable names
     parser.add_argument('--blocking_event_id_variable', type=str,
-        required=False, default='blocking_event_id',
+        required=False, default=DEFAULT_BLOCKING_EVENT_ID_VARIABLE,
         help='name of variable with blocking event ID')
 
-    parser.add_argument('--x_axis_variable', type=str, default='lon',
+    parser.add_argument('--x_axis_variable', type=str, default=DEFAULT_X_AXIS_VARIABLE,
         required=False, help='name of x coordinate variable')
 
-    parser.add_argument('--y_axis_variable', type=str, default='lat',
+    parser.add_argument('--y_axis_variable', type=str, default=DEFAULT_Y_AXIS_VARIABLE,
          required=False, help='name of y coordinate variable')
 
-    parser.add_argument('--t_axis_variable', type=str, default='time',
+    parser.add_argument('--t_axis_variable', type=str, default=DEFAULT_T_AXIS_VARIABLE,
          required=False, help='time dimension name')
 
     # Output configuration
@@ -305,12 +808,12 @@ def create_argument_parser():
         help='time unit')
 
     # Tracking parameters
-    parser.add_argument('--min_overlap_prev', type=float, default=20.0,
+    parser.add_argument('--min_overlap_prev', type=float, default=DEFAULT_MIN_OVERLAP_PREV,
         required=False,
         help='minimum overlap percentage with previous time step required to '
              'consider regions as matching (0-100)')
 
-    parser.add_argument('--background_id', type=int, default=0,
+    parser.add_argument('--background_id', type=int, default=DEFAULT_BACKGROUND_ID,
         required=False,
         help='background ID value used in component labeling')
 
@@ -383,240 +886,6 @@ def create_input_reader(args):
     return reader
 
 
-def get_time_range(input_md, args):
-    """
-    Determine the time range for processing.
-
-    Parameters
-    ----------
-    input_md : teca_metadata
-        Input metadata containing time coordinate information
-    args : argparse.Namespace
-        Command-line arguments
-
-    Returns
-    -------
-    first_step : int
-        First time step to process
-    last_step : int
-        Last time step to process (inclusive)
-    """
-    input_coords = input_md['coordinates']
-    t = input_coords['t']
-
-    first_step = args.first_step
-    # Process consecutive time step pairs (t, t+1), so the last valid starting
-    # index is size-2 (allowing access to both t and t+1 at indices size-2 and size-1)
-    last_step = args.last_step if args.last_step >= 0 else t.size - 2
-
-    return first_step, last_step
-
-
-def create_temporal_reindexing(args, input_node, first_step, last_step):
-    """
-    Create temporal reindexing to get the next time step data.
-
-    Parameters
-    ----------
-    args : argparse.Namespace
-        Command-line arguments
-    input_node : teca.teca_algorithm
-        Input connection
-    first_step : int
-        First time step to process
-    last_step : int
-        Last time step to process
-
-    Returns
-    -------
-    rename_var : teca.teca_rename_variables
-        Node that provides the next time step data with renamed variables
-    """
-    # Shift by one time step to get the next time step; timestep range is
-    # inclusive, so need to add one to last_step
-    indices_next = list(range(first_step + 1, last_step + 1 + 1))
-    reindex_next = teca.teca_temporal_index_select.New()
-    reindex_next.set_input_connection(input_node.get_output_port())
-    reindex_next.set_indices(indices_next)
-
-    # Rename the blocking event ID variable for the next time step
-    rename_var = teca.teca_rename_variables.New()
-    rename_var.set_original_variable_names([args.blocking_event_id_variable])
-    rename_var.set_new_variable_names([args.blocking_event_id_variable + '_next'])
-    rename_var.set_input_connection(reindex_next.get_output_port())
-
-    return rename_var
-
-
-def create_blob_intersection(args, current_node, next_node, rank):
-    """
-    Create pipeline to compute intersection of blobs between time steps.
-
-    Parameters
-    ----------
-    args : argparse.Namespace
-        Command-line arguments
-    current_node : teca.teca_algorithm
-        Input connection for current time step
-    next_node : teca.teca_algorithm
-        Input connection for next time step
-    rank : int
-        MPI rank for error reporting
-
-    Returns
-    -------
-    intersect_blobs : teca.teca_derived_quantity
-        Node that computes blob intersections
-    intersection_varname : str
-        Name of the intersection variable
-    """
-    # Join the two time steps into one dataset
-    mesh_join = teca.teca_mesh_join.New()
-    mesh_join.set_input_connection(0, current_node.get_output_port())
-    mesh_join.set_input_connection(1, next_node.get_output_port())
-
-    # Compute the intersection of the blocking events in the two time steps
-    intersect_blobs = teca.teca_derived_quantity.New()
-    intersect_blobs.set_operation_name('intersect_blobs')
-    intersect_blobs.set_input_connection(mesh_join.get_output_port())
-
-    dependent_vars = [
-        args.blocking_event_id_variable,
-        args.blocking_event_id_variable + '_next'
-    ]
-    intersection_varname = args.blocking_event_id_variable + '_intersection'
-    intersect_blobs.set_dependent_variables(dependent_vars)
-
-    # Get metadata for attribute configuration
-    try:
-        mesh_join_md = mesh_join.update_metadata()
-    except Exception as e:
-        report_error_and_exit(f'Failed to read mesh join metadata: {e}', rank)
-
-    in_atts = teca.teca_array_attributes(mesh_join_md['attributes'][dependent_vars[0]])
-    out_atts = teca.teca_array_attributes(
-        teca.teca_int_array_code.get(),
-        teca.teca_array_attributes.point_centering,
-        0, in_atts.mesh_dim_active, 'unitless',
-        intersection_varname,
-        'intersection of labeled regions', None)
-    intersect_blobs.append_derived_variable(intersection_varname, out_atts)
-
-    intersect_blobs_op = IntersectRegionsOp(
-        args.blocking_event_id_variable,
-        args.blocking_event_id_variable + '_next',
-        args.background_id,
-        intersection_varname)
-    intersect_blobs.set_execute_callback(intersect_blobs_op)
-
-    return intersect_blobs, intersection_varname
-
-
-def create_area_calculations(args, input_node, intersection_varname):
-    """
-    Create pipeline to compute areas of blobs and their intersections.
-
-    Parameters
-    ----------
-    args : argparse.Namespace
-        Command-line arguments
-    input_node : teca.teca_algorithm
-        Input connection
-    intersection_varname : str
-        Name of the intersection variable
-
-    Returns
-    -------
-    intersection_area : teca.teca_2d_component_area
-        Node that computes intersection areas
-    """
-    # Compute the area of blobs in current time step
-    prev_blob_area = teca.teca_2d_component_area.New()
-    prev_blob_area.set_input_connection(input_node.get_output_port())
-    prev_blob_area.set_component_variable(args.blocking_event_id_variable)
-    prev_blob_area.set_background_id(args.background_id)
-    prev_blob_area.set_output_metadata_prefix('prev_blob_')
-
-    # Compute the area of the intersections of blobs between time steps
-    intersection_area = teca.teca_2d_component_area.New()
-    intersection_area.set_input_connection(prev_blob_area.get_output_port())
-    intersection_area.set_component_variable(intersection_varname)
-    intersection_area.set_background_id(args.background_id)
-    intersection_area.set_output_metadata_prefix('intersection_')
-
-    return intersection_area
-
-
-def create_tracking_table_generator(args, input_node):
-    """
-    Create the tracking matches table generator.
-
-    Parameters
-    ----------
-    args : argparse.Namespace
-        Command-line arguments
-    input_node : teca.teca_algorithm
-        Input connection
-
-    Returns
-    -------
-    generator : GenerateTrackingMatchesTableOp
-        Configured tracking table generator
-    """
-    generator = generate_tracking_matches_table_algorithm.New()
-    generator.set_input_connection(input_node.get_output_port())
-    generator.set_min_overlap_prev(args.min_overlap_prev)
-    generator.set_background_id(args.background_id)
-    generator.set_prev_blob_prefix('prev_blob_')
-    generator.set_intersection_prefix('intersection_')
-    if args.verbose:
-        generator.set_verbose(True)
-
-    return generator
-
-
-def create_table_writer(args, input_node, first_step, last_step):
-    """
-    Configure and return the table writer pipeline.
-
-    Parameters
-    ----------
-    args : argparse.Namespace
-        Writer configuration parameters
-    input_node : teca.teca_algorithm
-        Input connection from table generator
-    first_step : int
-        First time step to process
-    last_step : int
-        Last time step to process
-
-    Returns
-    -------
-    writer : teca.teca_table_writer
-        Configured writer ready to execute
-    """
-    # Create the table reducer
-    table_reduce = teca.teca_table_reduce.New()
-    table_reduce.set_thread_pool_size(args.n_threads)
-    table_reduce.set_input_connection(input_node.get_output_port())
-    table_reduce.set_start_index(first_step)
-    table_reduce.set_end_index(last_step)
-    if args.verbose:
-        table_reduce.set_verbose(1)
-
-    # Create the table sorter
-    table_sorter = teca.teca_table_sort.New()
-    table_sorter.set_input_connection(table_reduce.get_output_port())
-    table_sorter.set_index_column("time_index_1")
-
-    # Create the table writer
-    table_writer = teca.teca_table_writer.New()
-    table_writer.set_input_connection(table_sorter.get_output_port())
-    table_writer.set_file_name(args.output_file)
-
-    return table_writer
-
-
 def build_blob_stitching_pipeline(args, rank):
     """
     Build the complete blob stitching pipeline.
@@ -642,44 +911,35 @@ def build_blob_stitching_pipeline(args, rank):
     normalize_input_coords = teca.teca_normalize_coordinates.New()
     normalize_input_coords.set_input_connection(input_reader.get_output_port())
 
-    # Get metadata and determine time range
+    # Create and initialize overlap table generator
+    overlap_table = teca_blocking_event_create_overlap_table()
+    overlap_table.set_input_node(normalize_input_coords)
+    overlap_table.set_blocking_event_id_variable(args.blocking_event_id_variable)
+    overlap_table.set_min_overlap_prev(args.min_overlap_prev)
+    overlap_table.set_background_id(args.background_id)
+    overlap_table.set_first_step(args.first_step)
+    overlap_table.set_last_step(args.last_step)
+    overlap_table.set_n_threads(args.n_threads)
+    if args.verbose:
+        overlap_table.set_verbose(True)
+
+    # Get metadata for time calculation (needed for optional times file output)
     try:
         input_md = normalize_input_coords.update_metadata()
     except Exception as e:
         report_error_and_exit(f'Failed to read metadata: {e}', rank)
 
-    # Validate required variable exists
-    try:
-        available_vars = input_md.get('variables')
-    except:
-        available_vars = []
-    if args.blocking_event_id_variable not in available_vars:
-        report_error_and_exit(
-            f'Required variable {args.blocking_event_id_variable} not found in input.\n'
-            f'       Available variables: {available_vars}', rank)
-
-    first_step, last_step = get_time_range(input_md, args)
+    # Get the actual time steps being processed
+    first_step = overlap_table.get_first_step()
+    last_step = overlap_table.get_last_step()
 
     if rank == 0:
         print(f'Processing time steps {first_step} to {last_step} (inclusive)')
 
-    # Create temporal reindexing for next time step
-    next_time_step_node = create_temporal_reindexing(
-        args, normalize_input_coords, first_step, last_step)
-
-    # Compute blob intersections
-    intersect_blobs, intersection_varname = create_blob_intersection(
-        args, normalize_input_coords, next_time_step_node, rank)
-
-    # Compute areas
-    area_node = create_area_calculations(
-        args, intersect_blobs, intersection_varname)
-
-    # Generate tracking matches table
-    tracking_generator = create_tracking_table_generator(args, area_node)
-
-    # Configure the writer
-    writer = create_table_writer(args, tracking_generator, first_step, last_step)
+    # Create the table writer
+    writer = teca.teca_table_writer.New()
+    writer.set_input_connection(overlap_table.get_output_port())
+    writer.set_file_name(args.output_file)
 
     return writer, input_md
 
@@ -709,7 +969,12 @@ def main():
 
         # Save times file if requested
         if args.output_times_file:
-            first_step, last_step = get_time_range(input_md, args)
+            # Compute the time range based on user input and data size
+            input_coords = input_md['coordinates']
+            t = input_coords['t']
+            first_step = args.first_step
+            last_step = args.last_step if args.last_step >= 0 else t.size - 2
+            
             elapsed_seconds = calculate_elapsed_seconds(input_md, first_step, last_step)
 
             np.save(args.output_times_file, elapsed_seconds)
