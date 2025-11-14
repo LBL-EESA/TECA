@@ -14,56 +14,75 @@ modules loaded) and to load the teca modulefiles as late as possible.  For
 instance when running in a batch script on the Cray load the teca module in the
 batch script rather than in your shell.
 
-+--------------------------------------------+--------------------------------------------------+
-| **Application**                            | **Description**                                  |
-+--------------------------------------------+--------------------------------------------------+
-| :ref:`teca_metadata_probe`                 | A diagnostic tool used for run planning          |
-+--------------------------------------------+--------------------------------------------------+
-| :ref:`teca_integrated_vapor_transport`     | Computes IVT (integrated vapor transport)        |
-+--------------------------------------------+--------------------------------------------------+
-| :ref:`teca_integrated_water_vapor`         | Computes IWV (integrated water vapor)            |
-+--------------------------------------------+--------------------------------------------------+
-| :ref:`teca_bayesian_ar_detect`             | AR detection with uncertainty quantification     |
-+--------------------------------------------+--------------------------------------------------+
-| :ref:`teca_deeplab_ar_detect`              | A machine learning based AR detector             |
-+--------------------------------------------+--------------------------------------------------+
-| :ref:`teca_temporal_reduction`             | Computes reductions (min, max, average,          |
-|                                            | summation) over the time dimension               |
-+--------------------------------------------+--------------------------------------------------+
-| :ref:`teca_tc_detect`                      | TC detection using GFDL algorithm                |
-+--------------------------------------------+--------------------------------------------------+
-| :ref:`teca_tc_trajectory`                  | Computes TC tracks from a set of candidates      |
-+--------------------------------------------+--------------------------------------------------+
-| :ref:`teca_tc_wind_radii`                  | Computes storm size from a set of TC tracks      |
-+--------------------------------------------+--------------------------------------------------+
-| :ref:`teca_potential_intensity`            | Computes thermodynamic potential intensity of    |
-|                                            | tropical cyclones                                |
-+--------------------------------------------+--------------------------------------------------+
-| :ref:`teca_tc_stats`                       | Computes descriptive statistics from a set       |
-|                                            | of TC tracks                                     |
-+--------------------------------------------+--------------------------------------------------+
-| :ref:`teca_tc_trajectory_scalars`          | Plots tracks on a map along with GFDL            |
-|                                            | detectors parameters                             |
-+--------------------------------------------+--------------------------------------------------+
-| :ref:`teca_tc_wind_radii_stats`            | Computes descriptive statistics relating to      |
-|                                            | TC storm size                                    |
-+--------------------------------------------+--------------------------------------------------+
-| :ref:`teca_convert_table`                  | Convert tabular data from one file format        |
-|                                            | to another                                       |
-+--------------------------------------------+--------------------------------------------------+
-| :ref:`teca_event_filter`                   | Select TC tracks using run time provided         |
-|                                            | expressions                                      |
-+--------------------------------------------+--------------------------------------------------+
-| :ref:`teca_cf_restripe`                    | Convert the internal layout of a dataset on disk |
-|                                            | with optional subsetting and/or regridding.      |
-+--------------------------------------------+--------------------------------------------------+
-| :ref:`teca_blocking_event_detect_blobs`    | Detect blocking event candidates as geopotential |
-|                                            | height anomalies above a size threshold.         |
-+--------------------------------------------+--------------------------------------------------+
-| :ref:`teca_blocking_event_create_overlap_  | Create tracking table for blocking event         |
-|                                            | candidates by analyzing spatial overlap between  |
-| table`                                     | consecutive time steps.                          |
-+--------------------------------------------+--------------------------------------------------+
++-------------------------------------------------+----------------------------+
+| **Application**                                 | **Description**            |
++-------------------------------------------------+----------------------------+
+| :ref:`teca_metadata_probe`                      | A diagnostic tool used for |
+|                                                 | run planning               |
++-------------------------------------------------+----------------------------+
+| :ref:`teca_integrated_vapor_transport`          | Computes IVT (integrated   |
+|                                                 | vapor transport)           |
++-------------------------------------------------+----------------------------+
+| :ref:`teca_integrated_water_vapor`              | Computes IWV (integrated   |
+|                                                 | water vapor)               |
++-------------------------------------------------+----------------------------+
+| :ref:`teca_bayesian_ar_detect`                  | AR detection with          |
+|                                                 | uncertainty quantification |
++-------------------------------------------------+----------------------------+
+| :ref:`teca_deeplab_ar_detect`                   | A machine learning based   |
+|                                                 | AR detector                |
++-------------------------------------------------+----------------------------+
+| :ref:`teca_temporal_reduction`                  | Computes reductions (min,  |
+|                                                 | max, average, summation)   |
+|                                                 | over the time dimension    |
++-------------------------------------------------+----------------------------+
+| :ref:`teca_tc_detect`                           | TC detection using GFDL    |
+|                                                 | algorithm                  |
++-------------------------------------------------+----------------------------+
+| :ref:`teca_tc_trajectory`                       | Computes TC tracks from a  |
+|                                                 | set of candidates          |
++-------------------------------------------------+----------------------------+
+| :ref:`teca_tc_wind_radii`                       | Computes storm size from a |
+|                                                 | set of TC tracks           | 
++-------------------------------------------------+----------------------------+
+| :ref:`teca_potential_intensity`                 | Computes thermodynamic     |
+|                                                 | potential intensity of     |
+|                                                 | tropical cyclones          | 
++-------------------------------------------------+----------------------------+
+| :ref:`teca_tc_stats`                            | Computes descriptive       |
+|                                                 | statistics from a set of   |
+|                                                 | TC tracks                  |
++-------------------------------------------------+----------------------------+
+| :ref:`teca_tc_trajectory_scalars`               | Plots tracks on a map      |
+|                                                 | along with GFDL detectors  |
+|                                                 | parameters                 |
++-------------------------------------------------+----------------------------+
+| :ref:`teca_tc_wind_radii_stats`                 | Computes descriptive       |
+|                                                 | statistics relating to TC  |
+|                                                 | storm size                 |
++-------------------------------------------------+----------------------------+
+| :ref:`teca_convert_table`                       | Convert tabular data from  |
+|                                                 | one file format to another |
++-------------------------------------------------+----------------------------+
+| :ref:`teca_event_filter`                        | Select TC tracks using run |
+|                                                 | time provided expressions  |
++-------------------------------------------------+----------------------------+
+| :ref:`teca_cf_restripe`                         | Convert the internal layout|
+|                                                 | of a dataset on disk with  |
+|                                                 | optional subsetting and/or |
+|                                                 | regridding.                |
++-------------------------------------------------+----------------------------+
+| :ref:`teca_blocking_event_detect_blobs`         | Detect blocking event      | 
+|                                                 | candidates as geopotential |
+|                                                 | height anomalies above a   |
+|                                                 | size threshold.            |
++-------------------------------------------------+----------------------------+
+| :ref:`teca_blocking_event_create_overlap_table` | Create tracking table for  |
+|                                                 | blocking event candidates  |
+|                                                 | by analyzing spatial       |
+|                                                 | overlap between            |
+|                                                 | consecutive time steps.    |
++-------------------------------------------------+----------------------------+
 
 Applying the Command Line Applications at Scale
 -----------------------------------------------
