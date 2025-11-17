@@ -357,8 +357,10 @@ class teca_blocking_event_create_overlap_table:
             Number of threads
         """
         self._ensure_pipeline_not_built()
-        if n_threads < 1:
-            raise ValueError(f"n_threads must be at least 1, got {n_threads}")
+        if n_threads < 1 and n_threads != -1:
+            raise ValueError(
+                f"n_threads must be at least 1 (or -1 for one thread per "
+                f"physical core), got {n_threads}")
         self.n_threads = n_threads
 
     def set_first_step(self, first_step: int) -> None:
@@ -974,7 +976,7 @@ def main():
             t = input_coords['t']
             first_step = args.first_step
             last_step = args.last_step if args.last_step >= 0 else t.size - 2
-            
+
             elapsed_seconds = calculate_elapsed_seconds(input_md, first_step, last_step)
 
             np.save(args.output_times_file, elapsed_seconds)
