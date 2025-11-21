@@ -770,26 +770,26 @@ def create_argument_parser():
     # Variable names
     parser.add_argument('--geopotential_height_variable', type=str,
         required=False, default='H',
-        help='name of variable with geopotential height')
+        help='name of variable with geopotential height (default: H)')
 
     parser.add_argument('--geopotential_height_threshold_variable', type=str,
         required=False, default='threshold_H',
-        help='name of variable with geopotential height threshold')
-
+        help='name of variable with geopotential height threshold (default:'
+             'threshold_H)')
     parser.add_argument('--x_axis_variable', type=str,
         default=DEFAULT_X_AXIS_VARIABLE, required=False,
-        help='name of x coordinate variable')
+        help=f'name of x coordinate variable (default: {DEFAULT_X_AXIS_VARIABLE})')
 
     parser.add_argument('--y_axis_variable', type=str,
         default=DEFAULT_Y_AXIS_VARIABLE, required=False,
-        help='name of y coordinate variable')
-
+        help=f'name of y coordinate variable (default: {DEFAULT_Y_AXIS_VARIABLE})')
     parser.add_argument('--z_axis_variable', type=str,
-        default='lev', required=False, help='name of z coordinate variable')
+        default='lev', required=False,
+        help='name of z coordinate variable (default: lev)')
 
     parser.add_argument('--t_axis_variable', type=str,
         default=DEFAULT_T_AXIS_VARIABLE, required=False,
-        help='time dimension name')
+        help=f'time dimension name (default: {DEFAULT_T_AXIS_VARIABLE})')
 
     # Output configuration
     parser.add_argument('--output_file', type=str, required=True,
@@ -805,7 +805,7 @@ def create_argument_parser():
              ' interval. For the number_of_steps option use --steps_per_file.')
 
     parser.add_argument('--steps_per_file', type=int, required=False, default=128,
-        help='number of time steps per output file')
+        help='number of time steps per output file (default: 128)')
 
     parser.add_argument('--date_format', type=str, required=False,
         help='A strftime format used when encoding dates into the output file'
@@ -813,11 +813,10 @@ def create_argument_parser():
              ' of the first time step in the file using this format specifier.')
 
     parser.add_argument('--first_step', type=int, default=0, required=False,
-        help='first time step to process')
+        help='first time step to process (default: 0)')
 
     parser.add_argument('--last_step', type=int, default=-1, required=False,
-        help='last time step to process')
-
+        help='last time step to process. -1 means entire dataset (default: -1)')
     parser.add_argument('--calendar', type=str, required=False,
         help='time calendar')
 
@@ -836,25 +835,27 @@ def create_argument_parser():
     parser.add_argument('--pressure_level', type=float,
         default=DEFAULT_PRESSURE_LEVEL, required=False,
         help=f'pressure level in hPa for blocking detection '
-             f'standard: {DEFAULT_PRESSURE_LEVEL} hPa)')
+             f'(default: {DEFAULT_PRESSURE_LEVEL} hPa)')
 
     parser.add_argument('--min_latitude', type=float,
         default=DEFAULT_MIN_LATITUDE, required=False,
         help=f'minimum absolute latitude for blocking detection (equatorward, '
-             'applies to both hemispheres)')
+             f'applies to both hemispheres, default: {DEFAULT_MIN_LATITUDE})')
 
     parser.add_argument('--max_latitude', type=float,
         default=DEFAULT_MAX_LATITUDE,required=False,
-        help='maximum absolute latitude for blocking detection (poleward, '
-             'applies to both hemispheres)')
+        help=f'maximum absolute latitude for blocking detection (poleward, '
+             f'applies to both hemispheres, default: {DEFAULT_MAX_LATITUDE})')
 
     parser.add_argument('--min_area', type=float, default=1.0e6,
         required=False,
-        help='minimum component area in square kilometers for blocking events')
+        help=f'minimum component area in square kilometers for blocking events'
+             f' (default: {DEFAULT_MIN_AREA})')
 
-    parser.add_argument('--n_threads', type=int, default=1,
+    parser.add_argument('--n_threads', type=int, default=-1,
         required=False,
-        help='number of threads for the writer')
+        help='number of threads for the writer. -1 means one thread per physical'
+             ' core (default: -1)')
 
     return parser
 
@@ -919,6 +920,10 @@ def validate_arguments(args, rank):
 
     if args.pressure_level <= 0:
         report_error_and_exit('pressure_level must be positive', rank)
+
+    if args.n_threads < 1 and args.n_threads != -1:
+        report_error_and_exit('n_threads must be >1 (or -1 for one thread per'
+                              ' physical core)', rank)
 
 
 def create_input_reader(args):

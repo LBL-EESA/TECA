@@ -778,14 +778,17 @@ def create_argument_parser():
         required=False, default=DEFAULT_BLOCKING_EVENT_ID_VARIABLE,
         help='name of variable with blocking event ID')
 
-    parser.add_argument('--x_axis_variable', type=str, default=DEFAULT_X_AXIS_VARIABLE,
-        required=False, help='name of x coordinate variable')
+    parser.add_argument('--x_axis_variable', type=str,
+        default=DEFAULT_X_AXIS_VARIABLE, required=False,
+        help=f'name of x coordinate variable (default: {DEFAULT_X_AXIS_VARIABLE})')
 
-    parser.add_argument('--y_axis_variable', type=str, default=DEFAULT_Y_AXIS_VARIABLE,
-         required=False, help='name of y coordinate variable')
+    parser.add_argument('--y_axis_variable', type=str,
+         default=DEFAULT_Y_AXIS_VARIABLE, required=False,
+         help=f'name of y coordinate variable (default: {DEFAULT_Y_AXIS_VARIABLE})')
 
-    parser.add_argument('--t_axis_variable', type=str, default=DEFAULT_T_AXIS_VARIABLE,
-         required=False, help='time dimension name')
+    parser.add_argument('--t_axis_variable', type=str,
+         default=DEFAULT_T_AXIS_VARIABLE, required=False,
+         help=f'time dimension name (default: {DEFAULT_T_AXIS_VARIABLE})')
 
     # Output configuration
     parser.add_argument('--output_file', type=str, required=True,
@@ -801,7 +804,8 @@ def create_argument_parser():
         help='first time step to process')
 
     parser.add_argument('--last_step', type=int, default=-1, required=False,
-        help='last time step to process (default: -1 means process until second-to-last)')
+        help='last time step to process. -1 means process entire dataset'
+             ' (default: -1)')
 
     parser.add_argument('--calendar', type=str, required=False,
         help='time calendar')
@@ -810,21 +814,24 @@ def create_argument_parser():
         help='time unit')
 
     # Tracking parameters
-    parser.add_argument('--min_overlap_prev', type=float, default=DEFAULT_MIN_OVERLAP_PREV,
-        required=False,
-        help='minimum overlap percentage with previous time step required to '
-             'consider regions as matching (0-100)')
+    parser.add_argument('--min_overlap_prev', type=float,
+        default=DEFAULT_MIN_OVERLAP_PREV, required=False,
+        help=f'minimum overlap percentage with previous time step required to'
+             f' consider regions as matching (0-100, default:'
+             f' {DEFAULT_MIN_OVERLAP_PREV})')
 
     parser.add_argument('--background_id', type=int, default=DEFAULT_BACKGROUND_ID,
         required=False,
-        help='background ID value used in component labeling')
+        help=f'background ID value used in component labeling (default:'
+             f' {DEFAULT_BACKGROUND_ID})')
 
     parser.add_argument('--verbose', action='store_true',
         help='enable verbose output for debugging')
 
-    parser.add_argument('--n_threads', type=int, default=1,
+    parser.add_argument('--n_threads', type=int, default=-1,
         required=False,
-        help='number of threads for the table reducer')
+        help='number of threads for the table reducer. -1 means one thread per'
+             ' physical core (default: -1)')
 
     return parser
 
