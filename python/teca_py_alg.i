@@ -26,7 +26,9 @@
 #include "teca_l2_norm.h"
 #include "teca_laplacian.h"
 #include "teca_latitude_damper.h"
+#include "teca_latitude_range_filter.h"
 #include "teca_mask.h"
+#include "teca_mesh_join.h"
 #include "teca_normalize_coordinates.h"
 #include "teca_spatial_executive.h"
 #include "teca_regional_moisture_flux.h"
@@ -114,6 +116,14 @@
 %shared_ptr(teca_mask)
 %ignore teca_mask::operator=;
 %include "teca_mask.h"
+
+/***************************************************************************
+ mesh_join
+ ***************************************************************************/
+%ignore teca_mesh_join::shared_from_this;
+%shared_ptr(teca_mesh_join)
+%ignore teca_mesh_join::operator=;
+%include "teca_mesh_join.h"
 
 /***************************************************************************
  table_reduce
@@ -349,6 +359,14 @@ struct teca_tc_saffir_simpson
 %include "teca_latitude_damper.h"
 
 /***************************************************************************
+ latitude_range_filter
+ ***************************************************************************/
+%ignore teca_latitude_range_filter::shared_from_this;
+%shared_ptr(teca_latitude_range_filter)
+%ignore teca_latitude_range_filter::operator=;
+%include "teca_latitude_range_filter.h"
+
+/***************************************************************************
  bayesian_ar_detect
  ***************************************************************************/
 %ignore teca_bayesian_ar_detect::shared_from_this;
@@ -410,6 +428,11 @@ struct teca_tc_saffir_simpson
  python_temporal_reduction
  ***************************************************************************/
 %pythoncode "teca_temporal_reduction.py"
+
+/***************************************************************************
+ teca_time_metadata_override
+ ***************************************************************************/
+%pythoncode "teca_time_metadata_override.py"
 
 /***************************************************************************
  vertical_reduction

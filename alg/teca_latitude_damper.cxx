@@ -489,6 +489,7 @@ const_p_teca_dataset teca_latitude_damper::execute(
                 {
                     TECA_FATAL_ERROR("damper variable \"" << damped_vars[i]
                         << "\" is not in the input")
+                    free(filter);
                     return nullptr;
                 }
 

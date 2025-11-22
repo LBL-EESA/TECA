@@ -253,6 +253,10 @@ teca_add_test(test_2d_component_area_negative_area
     COMMAND test_2d_component_area 720 360 1 8 8 1
     "test_2d_component_area_contiguous_labels_%t%.bin")
 
+teca_add_test(test_2d_component_area_metadata_prefix
+    COMMAND test_2d_component_area 720 360 0 8 8 0 "prefix_"
+    "test_2d_component_area_metadata_prefix_%t%.bin")
+
 teca_add_test(test_component_area_filter
     SOURCES test_component_area_filter.cpp
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
@@ -277,6 +281,11 @@ teca_add_test(test_latitude_damper
     SOURCES test_latitude_damper.cpp
     LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
     COMMAND test_latitude_damper 361 181 10 "test_latitude_damper_%t%.%e%")
+
+teca_add_test(test_latitude_range_filter
+    SOURCES test_latitude_range_filter.cpp
+    LIBS teca_core teca_data teca_io teca_alg ${teca_test_link}
+    COMMAND test_latitude_range_filter 361 181 30 70 "test_latitude_range_filter_%t%.%e%")
 
 teca_add_test(test_simple_moving_average
     SOURCES test_simple_moving_average.cpp

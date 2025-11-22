@@ -46,6 +46,8 @@ teca_add_app(teca_table_diff LIBS ${teca_app_link}
 teca_add_app(teca_cartesian_mesh_diff LIBS ${teca_app_link}
     FEATURES ${TECA_HAS_NETCDF})
 
+teca_add_python_app(teca_numpy_array_diff)
+
 teca_add_app(teca_cpp_temporal_reduction LIBS ${teca_app_link}
     FEATURES ${TECA_HAS_NETCDF})
 
@@ -71,3 +73,17 @@ teca_add_python_app(teca_potential_intensity
 
 teca_add_python_app(teca_lapse_rate)
 teca_add_python_app(teca_spectral_filter FEATURES ${TECA_HAS_NETCDF})
+
+# Installing helper functions for blocking event apps manually to binary
+# directory since listing them as SOURCES in teca_add_python_app does remove
+# the .py extension.
+# TODO/FIXME: Should the helper functions be installed to a different
+# directory than the apps? If yes, which one?
+if(TECA_HAS_PYTHON)
+    file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/teca_blocking_event_helper_functions.py
+        DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/../${BIN_PREFIX})
+    file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/teca_blocking_event_operations.py
+        DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/../${BIN_PREFIX})
+endif()
+teca_add_python_app(teca_blocking_event_detect_blobs FEATURES ${TECA_HAS_NETCDF})
+teca_add_python_app(teca_blocking_event_create_overlap_table FEATURES ${TECA_HAS_NETCDF})
