@@ -1,0 +1,31 @@
+#!/usr/bin/env python@TECA_PYTHON_VERSION@
+import sys
+import pickle
+
+def main():
+    if len(sys.argv) != 3:
+        print(f"Usage: {sys.argv[0]} <file1.pkl> <file2.pkl>")
+        sys.exit(1)
+
+    pkl1_path = sys.argv[1]
+    pkl2_path = sys.argv[2]
+
+    try:
+        with open(pkl1_path, 'rb') as f:
+            obj1 = pickle.load(f)
+        with open(pkl2_path, 'rb') as f:
+            obj2 = pickle.load(f)
+    except Exception as e:
+        print(f"ERROR: Failed to load pickle files: {e}")
+        sys.exit(1)
+
+    if obj1 == obj2:
+        print("SUCCESS: Pickle file contents are equal")
+    else:
+        print(f"ERROR: Pickle file contents differ")
+        print(f"  File 1 type: {type(obj1)}")
+        print(f"  File 2 type: {type(obj2)}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
