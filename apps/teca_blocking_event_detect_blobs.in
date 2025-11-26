@@ -776,6 +776,7 @@ def create_argument_parser():
         required=False, default='threshold_H',
         help='name of variable with geopotential height threshold (default:'
              'threshold_H)')
+
     parser.add_argument('--x_axis_variable', type=str,
         default=DEFAULT_X_AXIS_VARIABLE, required=False,
         help=f'name of x coordinate variable (default: {DEFAULT_X_AXIS_VARIABLE})')
@@ -783,6 +784,7 @@ def create_argument_parser():
     parser.add_argument('--y_axis_variable', type=str,
         default=DEFAULT_Y_AXIS_VARIABLE, required=False,
         help=f'name of y coordinate variable (default: {DEFAULT_Y_AXIS_VARIABLE})')
+
     parser.add_argument('--z_axis_variable', type=str,
         default='lev', required=False,
         help='name of z coordinate variable (default: lev)')
@@ -817,6 +819,7 @@ def create_argument_parser():
 
     parser.add_argument('--last_step', type=int, default=-1, required=False,
         help='last time step to process. -1 means entire dataset (default: -1)')
+
     parser.add_argument('--calendar', type=str, required=False,
         help='time calendar')
 
@@ -852,6 +855,7 @@ def create_argument_parser():
         help=f'minimum component area in square kilometers for blocking events'
              f' (default: {DEFAULT_MIN_AREA})')
 
+    # Threading options
     parser.add_argument('--n_threads', type=int, default=-1,
         required=False,
         help='number of threads for the writer. -1 means one thread per physical'
