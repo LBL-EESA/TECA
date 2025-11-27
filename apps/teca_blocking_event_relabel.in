@@ -63,13 +63,15 @@ class teca_blocking_event_relabel:
         self.pipeline_tail = None
 
         # Variable names
-        self.blocking_event_id_variable = DEFAULT_BLOCKING_EVENT_ID_VARIABLE
+        self.blocking_event_id_varname = DEFAULT_BLOCKING_EVENT_ID_VARIABLE
+        self.global_blocking_event_id_varname = (
+            'global_' + DEFAULT_BLOCKING_EVENT_ID_VARIABLE
+        )
 
         # Relabeling parameters
         self.background_id = DEFAULT_BACKGROUND_ID
         self.relabel_mapping = None
         self.relabel_mapping_file = None
-        self.relabeled_varname = None
 
     def _ensure_pipeline_not_built(self) -> None:
         """
@@ -84,19 +86,20 @@ class teca_blocking_event_relabel:
             raise RuntimeError(
                 "Parameters can only be set before pipeline is built.")
 
-    def set_blocking_event_id_variable(self, variable_name: str) -> None:
+    def set_blocking_event_id_varname(self, varname: str) -> None:
         """
         Set the blocking event ID variable name.
 
         Parameters
         ----------
-        variable_name : str
+        varname : str
             Name of blocking event ID variable
         """
         self._ensure_pipeline_not_built()
-        if not variable_name:
+        if not varname:
             raise ValueError("variable_name cannot be empty")
-        self.blocking_event_id_variable = variable_name
+        self.blocking_event_id_varname = varname
+        self.global_blocking_event_id_varname = 'global_' + varname
 
     def set_background_id(self, background_id: int) -> None:
         """
@@ -195,7 +198,7 @@ class teca_blocking_event_relabel:
             self._build_pipeline()
         return self.pipeline_tail.get_output_port()
 
-    def get_relabeled_variable_name(self) -> str:
+    def get_global_blocking_event_id_varname(self) -> str:
         """
         Get the name of the relabeled variable.
 
@@ -206,7 +209,7 @@ class teca_blocking_event_relabel:
         """
         if self.pipeline_tail is None:
             self._build_pipeline()
-        return self.relabeled_varname
+        return self.global_blocking_event_id_varname
 
     def _get_and_validate_metadata(self, input_node, required_vars=None):
         """
@@ -285,35 +288,38 @@ class teca_blocking_event_relabel:
         # Get and validate metadata
         normalize_input_coords_md = self._get_and_validate_metadata(
             self.input_node,
-            [self.blocking_event_id_variable])
-
-        # Create the relabeled variable name
-        self.relabeled_varname = 'global_' + self.blocking_event_id_variable
+            [self.blocking_event_id_varname])
 
         # Create the relabel operation
         relabel_ids = teca.teca_derived_quantity.New()
         relabel_ids.set_operation_name('relabel_ids')
         relabel_ids.set_input_connection(self.input_node.get_output_port())
-        dependent_vars = [self.blocking_event_id_variable]
+        dependent_vars = [self.blocking_event_id_varname]
         relabel_ids.set_dependent_variables(dependent_vars)
 
         # Configure output attributes
-        in_atts = teca.teca_array_attributes(
-            normalize_input_coords_md['attributes'][self.blocking_event_id_variable])
+        try:
+            attributes = normalize_input_coords_md['attributes']
+            in_atts = teca.teca_array_attributes(
+                attributes[self.blocking_event_id_varname])
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to get attributes for variable '{self.blocking_event_id_varname}'. "
+                f"Ensure the variable exists in input metadata. Error: {e}")
         out_atts = teca.teca_array_attributes(
             teca.teca_int_array_code.get(),
             teca.teca_array_attributes.point_centering,
             0, in_atts.mesh_dim_active, 'unitless',
-            self.relabeled_varname,
+            self.global_blocking_event_id_varname,
             'globally unique blocking event IDs', None)
-        relabel_ids.append_derived_variable(self.relabeled_varname, out_atts)
+        relabel_ids.append_derived_variable(self.global_blocking_event_id_varname, out_atts)
 
         # Set the execute callback
         relabel_ids_op = ReLabelOp(
-            self.blocking_event_id_variable,
+            self.blocking_event_id_varname,
             self.background_id,
             relabel_mapping,
-            self.relabeled_varname)
+            self.global_blocking_event_id_varname)
         relabel_ids.set_execute_callback(relabel_ids_op)
 
         self.pipeline_tail = relabel_ids
@@ -366,6 +372,16 @@ def create_argument_parser():
     # Relabeling parameters
     parser.add_argument('--mapping_file', type=str, required=True,
         help='Path to a Python pickle file containing a dictionary for remapping IDs.')
+
+    parser.add_argument('--background_id', type=int, default=DEFAULT_BACKGROUND_ID,
+        required=False,
+        help=f'background ID value used in component labeling (default:'
+             f' {DEFAULT_BACKGROUND_ID})')
+
+    parser.add_argument('--include_local_ids', action='store_true',
+        required=False,
+        help='If specified, write the local blocking event IDs to the output file'
+             ' in addition to the global IDs. By default, only global IDs are written.')
 
     # Output configuration
     parser.add_argument('--output_file', type=str, required=True,
@@ -420,7 +436,8 @@ def validate_arguments(args, rank):
         MPI rank for conditional error reporting
     """
     # Validate variable names are not empty
-    if not args.blocking_event_id_variable or not args.blocking_event_id_variable.strip():
+    if (not args.blocking_event_id_variable or
+        not args.blocking_event_id_variable.strip()):
         report_error_and_exit('blocking_event_id_variable cannot be empty', rank)
 
     if not args.x_axis_variable or not args.x_axis_variable.strip():
@@ -452,7 +469,7 @@ def validate_arguments(args, rank):
         report_error_and_exit('last_step must be >= first_step or -1', rank)
 
     if args.n_threads < 1 and args.n_threads != -1:
-        report_error_and_exit('n_threads must be >1 (or -1 for one thread per'
+        report_error_and_exit('n_threads must be >= 1 (or -1 for one thread per'
                               ' physical core)', rank)
 
 def create_input_reader(args):
@@ -515,11 +532,12 @@ def build_relabeling_pipeline(args, rank):
     # Create and initialize relabeling pipeline
     relabel_pipeline = teca_blocking_event_relabel()
     relabel_pipeline.set_input_node(normalize_input_coordinates)
-    relabel_pipeline.set_blocking_event_id_variable(args.blocking_event_id_variable)
+    relabel_pipeline.set_blocking_event_id_varname(args.blocking_event_id_variable)
+    relabel_pipeline.set_background_id(args.background_id)
     relabel_pipeline.set_relabel_mapping_file(args.mapping_file)
 
     # Get the relabeled variable name
-    relabeled_varname = relabel_pipeline.get_relabeled_variable_name()
+    global_blocking_event_id_varname = relabel_pipeline.get_global_blocking_event_id_varname()
 
     # Configure the writer
     exe = teca.teca_index_executive.New()
@@ -532,7 +550,13 @@ def build_relabeling_pipeline(args, rank):
     writer.set_steps_per_file(args.steps_per_file)
     writer.set_first_step(args.first_step)
     writer.set_last_step(args.last_step)
-    writer.set_point_arrays([args.blocking_event_id_variable, relabeled_varname])
+
+    # Set output arrays based on --include_local_ids flag
+    if args.include_local_ids:
+        writer.set_point_arrays([args.blocking_event_id_variable, global_blocking_event_id_varname])
+    else:
+        writer.set_point_arrays([global_blocking_event_id_varname])
+
     if args.date_format:
         writer.set_date_format(args.date_format)
 

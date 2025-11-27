@@ -43,7 +43,7 @@ else
     ${app_prefix}/teca_cartesian_mesh_diff                                   \
         --reference_dataset "${data_root}/MERRA2_BlockingEvent/test_MERRA2_blockid\.19810208\.nc" \
         --test_dataset "test_MERRA2_blockid\.19810208\.nc"             \
-        --arrays blocking_event_id --relative_tolerance 1e-4      \
+        --arrays global_blocking_event_id --relative_tolerance 1e-4      \
         --absolute_tolerance 1e-6 --verbose
 
     # clean up
