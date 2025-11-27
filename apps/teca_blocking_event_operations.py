@@ -257,3 +257,105 @@ class BinarizeComponentIdsOp:
         binary_mask = (component_data != self.background_value).astype(np.byte)
         arrays[self.binary_varname] = binary_mask
         return out_mesh
+
+
+class ReLabelOp:
+    """
+    Operator for relabeling region IDs based on a provided mapping.
+
+    Region IDs are relabeled according to a mapping dictionary that specifies
+    how local IDs should be mapped to global IDs per timestep. If no mapping is
+    provided for a given timestep or local ID, a configurable background value
+    is used.
+
+    Attributes:
+        relabel_varname (str): Name of input variable to relabel.
+        background_value (int): Value used for the background in
+                                both input and output.
+        relabel_mapping (dict): A mapping dictionary with the format
+                                {<timestep>: {<local_id>: <global_id>}}.
+        relabeled_varname (str): Name of the output relabeled variable.
+    """
+
+    def __init__(self, relabel_varname, background_value, relabel_mapping, relabeled_varname):
+        """
+        Initialize the operator with the specified relabel mapping and background value.
+
+        Parameters
+        ----------
+        relabel_varname : str
+            Name of the variable to which relabeling is applied.
+        background_value : int
+            Value used for regions that do not have a corresponding mapping.
+        relabel_mapping : dict
+            Mapping for local ids to global ids per timestep.
+        relabeled_varname : str
+            Name of the output relabeled variable.
+        """
+        self.relabel_varname = relabel_varname
+        self.background_value = background_value
+        self.relabel_mapping = relabel_mapping
+        self.relabeled_varname = relabeled_varname
+
+    def __call__(self, port, data_in, req):
+        """
+        Relabel the region IDs in the mesh according to the mapping.
+
+        Parameters
+        ----------
+        port : int
+            The input port number (not used in this implementation).
+        data_in : list
+            List containing the input mesh data.
+        req : dict
+            Request dictionary that may contain 'device_id' for CUDA execution.
+
+        Returns
+        -------
+        teca_cartesian_mesh
+            A new mesh with relabeled region IDs based on the mapping.
+        """
+        dev = -1
+        np = numpy
+        if teca.get_teca_has_cuda() and teca.get_teca_has_cupy():
+            dev = req.get('device_id', -1)
+            if dev >= 0:
+                cupy.cuda.Device(dev).use()
+                np = cupy
+
+        # Get the current time index
+        index_request_key = req['index_request_key']
+        index_request = req[index_request_key]
+        t_index = index_request[0]
+        # ... double check that only one index was requested
+        if t_index != index_request[1]:
+            raise NotImplementedError('generate_overlap_table::execute: only one'
+                                      ' time index can be requested at a time')
+
+        in_mesh = teca.as_teca_cartesian_mesh(data_in[0])
+        out_mesh = teca.teca_cartesian_mesh.New()
+        out_mesh.shallow_copy(in_mesh)
+        arrays = out_mesh.get_point_arrays()
+
+        # Obtain the region labels array from the input mesh.
+        region_labels_array = arrays[self.relabel_varname]
+
+        if dev < 0:
+            region_labels_array = region_labels_array.get_host_accessible()
+        else:
+            region_labels_array = region_labels_array.get_cuda_accessible()
+
+        # Get mapping for the current timestep or use background_value
+        relabel_mapping_for_timestep = self.relabel_mapping.get(t_index, {})
+
+        # Map the region labels according to the mapping dictionary
+        unique_labels, inv_indices = np.unique(region_labels_array, return_inverse=True)
+        relabeled_ids = np.array(
+            [relabel_mapping_for_timestep.get(label, self.background_value)
+             for label in unique_labels],
+            dtype=np.int32
+            )
+        relabeled_ds = relabeled_ids[inv_indices]
+
+        arrays[self.relabeled_varname] = relabeled_ds
+        return out_mesh

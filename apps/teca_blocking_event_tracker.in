@@ -1,0 +1,894 @@
+#!/usr/bin/env python@TECA_PYTHON_VERSION@
+
+# This application implements a part of the tracking step of the TempestExtremes
+# pipeline for blocking events. It takes as input:
+#   1. A tracking table CSV (from teca_blocking_event_create_overlap_table)
+#   2. Time interval information (either fixed or per-index array)
+#
+# This application implements part of "3.6.3 Step 3: stitch regions across time" of:
+#   Ullrich, P. A., Zarzycki, C. M., McClenny, E. E., Pinheiro, M. C.,
+#   Stansfield, A. M., and Reed, K. A.: TempestExtremes v2.1: a community
+#   framework for feature detection, tracking, and analysis in large datasets,
+#   Geosci. Model Dev., 14, 5023–5048, https://doi.org/10.5194/gmd-14-5023-2021,
+#   2021.
+#
+# The application builds global connected components across timesteps and produces
+# a mapping dictionary that links local region IDs to global track IDs. This mapping
+# is then used by teca_blocking_event_relabel to create files with globally unique
+# track IDs.
+#
+# Together with teca_blocking_event_create_overlap_table and
+# teca_blocking_event_relabel, this application implements the functionality
+# of TempestExtremes StitchBlobs for blocking event tracking as described in the
+# above paper.
+
+"""
+teca_blocking_event_tracker
+----------------------------
+
+Reads a tracking CSV where each relevant line has four integers:
+    prev_timestep, prev_region, next_timestep, next_region
+
+The CSV may contain an arbitrary number of comment lines starting with '#' (ignored).
+These comment lines are followed by one single header line with column names (first
+non-comment 4-column line; skipped).
+
+This script builds global connected components across timesteps and produces
+a nested mapping:
+
+    { timestep_index: { local_id: global_id, ... }, ... }
+
+which is saved as a pickle file.
+
+Usage examples:
+    # Using a fixed interval between indices:
+    teca_blocking_event_tracker tracking.csv mapping.pkl \
+        --elapsed-time-per-index 3h --min-lifespan 5d
+
+    # Using an array of elapsed times per index (in seconds):
+    teca_blocking_event_tracker tracking.csv mapping.pkl \
+        --elapsed-time-array-file times.npy --min-lifespan 5d
+
+Exactly one of --elapsed-time-per-index or --elapsed-time-array-file is required.
+"""
+
+from __future__ import annotations
+import argparse
+import csv
+import os
+import pickle
+import re
+import sys
+from typing import Dict, Set, List, Optional, Any, Tuple
+import numpy as np
+
+try:
+    from mpi4py import MPI
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+except ImportError:
+    comm = None
+    rank = 0
+
+from teca_blocking_event_helper_functions import report_error_and_exit
+
+# -----------------------------------------------------------------------------
+# Utility functions
+# -----------------------------------------------------------------------------
+def merge_dicts_of_sets(dict1: Dict[Any, Set[int]], dict2: Dict[Any, Set[int]]):
+    """
+    Merge two dictionaries that have sets as values. For each key present in either
+    dictionary, return the union of the sets.
+
+    Args:
+        dict1 (dict): First dictionary with sets as values.
+        dict2 (dict): Second dictionary with sets as values.
+
+    Returns:
+        dict: merged dictionary with set-union values.
+    """
+    # Combine the keys from both dictionaries into one set of keys
+    all_keys = set(dict1) | set(dict2)
+
+    # For each key, take the set from dict1 and dict2 (or empty set if missing)
+    # and compute their union using the | operator.
+    return {k: dict1.get(k, set()) | dict2.get(k, set()) for k in all_keys}
+
+def parse_free_format_time_to_seconds(duration: str) -> int:
+    """
+    Parse a free-format duration string like '2y3M5d7h8m9s' into total seconds.
+
+    Supported units (case-sensitive):
+        y = years (365 days assumed)
+        M = months (30 days assumed)
+        d = days
+        h = hours
+        m = minutes
+        s = seconds
+
+    Units may appear in any order, optional, case-sensitive.
+
+    Returns:
+        int: total seconds represented by the string.
+
+    Note: This function was written by ChatGPT.
+    """
+    seconds_per_unit = {
+        'y': 365 * 24 * 3600,  # Assume 365 days in a year (no leap years)
+        'M': 30 * 24 * 3600,   # Assume 30 days in a month (for simplicity)
+        'd': 24 * 3600,
+        'h': 3600,
+        'm': 60,
+        's': 1
+    }
+
+    total_seconds = 0
+    # Regex matches "<number><unit>" with optional spaces
+    pattern = r'(\d+)\s*([yMdhms])'
+    for value, unit in re.findall(pattern, duration):
+        if unit not in seconds_per_unit:
+            raise ValueError(f"Unknown unit '{unit}' in duration string '{duration}'.")
+        total_seconds += int(value) * seconds_per_unit[unit]
+
+    return total_seconds
+
+
+# -----------------------------------------------------------------------------
+# GlobalConnectedComponent
+# -----------------------------------------------------------------------------
+class GlobalConnectedComponent:
+    """
+    Represents a single global connected component tracked across timesteps.
+
+    A `GlobalConnectedComponent` is used to record which local components belong
+    to a particular global component at each timestep. It maintains its current
+    set of local IDs and the timestep index. The component can be updated across
+    timesteps, merged with other components, and finalized once it stops evolving.
+
+    Usage:
+        # Create a new component
+        gcc = GlobalConnectedComponent(curr_local_ids={1,2}, curr_local_ids_ts_idx=0)
+
+        # Update it to next timestep
+        gcc.update_curr_local_ids(new_local_ids={1,3}, next_timestep_index=1)
+
+        # Finalize it when done
+        gcc.finalize()
+
+    Attributes:
+        next_global_id (int): Class-level counter for assigning unique IDs.
+        global_id (int): Unique ID of this component.
+        local_components_for_timestep_dict (dict): Maps timestep index -> set of local IDs.
+        curr_local_ids (set): Current set of local IDs in the active timestep (None if finalized).
+        curr_local_ids_ts_idx (int): Index of current timestep (None if finalized).
+    """
+    next_global_id = 1
+
+    @classmethod
+    def reset_global_id_counter(cls):
+        """Reset the global ID counter. Useful for testing."""
+        cls.next_global_id = 1
+
+    def __init__(self, curr_local_ids: Set[int], curr_local_ids_ts_idx: int):
+        """
+        Initialize a new global connected component.
+
+        Args:
+            curr_local_ids (set): Local IDs at the current timestep.
+            curr_local_ids_ts_idx (int): Index of the current timestep.
+
+        Raises:
+            RuntimeError: If `curr_local_ids` is empty.
+        """
+        if not curr_local_ids:
+            raise RuntimeError("New global component must have non-empty set of curr_local_ids!")
+        self.global_id = GlobalConnectedComponent.next_global_id
+        GlobalConnectedComponent.next_global_id += 1
+
+        # Mapping: timestep index -> set of local region ids belonging to this global component
+        self.local_components_for_timestep_dict: Dict[int, Set[int]] = {}
+
+        # Active state: current set of local ids at a timestep (None when finalized)
+        self.curr_local_ids: Optional[Set[int]] = curr_local_ids
+        self.curr_local_ids_ts_idx: Optional[int] = curr_local_ids_ts_idx
+
+    def update_curr_local_ids(self, new_local_ids: Set[int], next_timestep_index: int) -> None:
+        """
+        Update this component to the next timestep with new local IDs.
+
+        This stores the current local IDs in the internal history and updates
+        `curr_local_ids` to `new_local_ids`.
+
+        Args:
+            new_local_ids (set): Local IDs at the new timestep.
+            next_timestep_index (int): Index of the next timestep.
+
+        Raises:
+            RuntimeError: If the component is finalized.
+        """
+        if self.curr_local_ids is None:
+            raise RuntimeError("Cannot update finalized component!")
+        # Record current local IDs at current timestep
+        self.local_components_for_timestep_dict[self.curr_local_ids_ts_idx] = self.curr_local_ids
+        # Move to next timestep
+        self.curr_local_ids = new_local_ids
+        self.curr_local_ids_ts_idx = next_timestep_index
+
+    def merge(self, other: "GlobalConnectedComponent") -> None:
+        """
+        Merge another active component into this one.
+
+        This combines the histories and current local IDs of both components.
+
+        Args:
+            other (GlobalConnectedComponent): Another component to merge.
+
+        Notes:
+            - Both components must be active (not finalized).
+            - The timestep index must match for the merge to make sense.
+        """
+        if self.is_finalized():
+            print("Warning: Ignoring merge into finalized component!", file=sys.stderr)
+            return  # cannot merge already finalized component
+        if other.is_finalized():
+            print("Warning: Ignoring merge with already finalized component!", file=sys.stderr)
+            return  # cannot merge with already finalized component
+        assert self.curr_local_ids_ts_idx == other.curr_local_ids_ts_idx
+        # Merge histories and current IDs
+        self.local_components_for_timestep_dict = merge_dicts_of_sets(
+            self.local_components_for_timestep_dict,
+            other.local_components_for_timestep_dict
+        )
+        self.curr_local_ids |= other.curr_local_ids
+
+    def finalize(self) -> None:
+        """
+        Finalize this component.
+
+        This stores the current local IDs in the history and sets
+        `curr_local_ids` and `curr_local_ids_ts_idx` to None.
+        """
+        if self.is_finalized():
+            print("Warning: Ignoring finalization of already finalized component!", file=sys.stderr)
+            return  # already finalized
+        # write the last active timestep's local ids
+        self.local_components_for_timestep_dict[self.curr_local_ids_ts_idx] = self.curr_local_ids
+        self.curr_local_ids = None
+        self.curr_local_ids_ts_idx = None
+
+    def is_finalized(self) -> bool:
+        """Return True if the component has been finalized."""
+        return self.curr_local_ids is None
+
+    def lifetime(self, idx_to_time_mapper=None) -> float:
+        """
+        Compute the lifetime (duration) of this component.
+
+        By default, the lifetime is returned as the number of timesteps
+        the component spans. If an index-to-time mapper is provided, the
+        lifetime is returned as a duration (in the mapper’s units, usually seconds)
+        instead.
+
+        Parameters
+        ----------
+        idx_to_time_mapper : IndexToTimeMapper or None, optional
+            If provided, used to convert timestep indices into elapsed time values.
+            The returned lifetime will be in the same units as produced by the mapper
+            (typically seconds). If None, the lifetime is returned as a count of
+            timesteps.
+
+        Returns
+        -------
+        int or float
+            Lifetime of the component in number of timesteps (if no mapper is given)
+            or in elapsed time (if a mapper is given).
+
+        Raises
+        ------
+        RuntimeError
+            If called on an unfinalized component.
+        """
+        if not self.is_finalized():
+            raise RuntimeError("Trying to get lifetime of unfinalized component!")
+
+        birth = min(self.local_components_for_timestep_dict.keys())
+        death = max(self.local_components_for_timestep_dict.keys())
+
+        if idx_to_time_mapper is not None:
+            # Return lifetime as a duration in mapper's units (usually seconds)
+            return idx_to_time_mapper[death] - idx_to_time_mapper[birth]
+        else:
+            # Return lifetime as number of timesteps
+            return death - birth
+
+    def _repr_html_(self):
+        """
+        Return an HTML representation for rich display in Jupyter notebooks.
+        """
+        rstr = f'<b>Component #{self.global_id}</b> (Lifetime: {self.lifetime()})'
+        if self.curr_local_ids is not None:
+            rstr += ' <b><span style="color: red">(Warning: Not finalized)</span></b><br>'
+        rstr += '<table><tr><th>Timestep</th><th>Region Ids</th></tr>'
+        for ti in sorted(self.local_components_for_timestep_dict.keys()):
+            ids_str = ', '.join(map(str, sorted(self.local_components_for_timestep_dict[ti])))
+            rstr += f'<tr><td>{ti}</td><td>{ids_str}</td></tr>'
+        rstr += '</table>'
+        return rstr
+
+    def __repr__(self):
+        """Return a developer-friendly string representation."""
+        rstr = f'GlobalConnectedComponent #{self.global_id} ('
+        rstr += f'local_components_for_timestep_dict = {self.local_components_for_timestep_dict}, '
+        rstr += f'curr_local_ids = {self.curr_local_ids}, '
+        rstr += f'curr_local_ids_ts_idx={self.curr_local_ids_ts_idx})'
+        return rstr
+
+# -----------------------------------------------------------------------------
+# ComponentTracker
+# -----------------------------------------------------------------------------
+class ComponentTracker:
+    """
+    Tracks and manages multiple `GlobalConnectedComponent` objects.
+
+    A `ComponentTracker` keeps track of active components across timesteps,
+    finalizes them when they end, and can filter or display them.
+
+    Responsibilities:
+      - Maintain lists of active components (currently evolving) and finalized ones.
+      - Advance active components to the next timestep with update_global_components().
+      - Optionally filter components by minimum lifespan (in seconds) when components die.
+      - Finalize remaining active components with finalize().
+      - Reindex global IDs (consecutive numbering) via reindex_global_components().
+      - Generate the final nested mapping via generate_full_local_to_global_mapping().
+
+    Typical usage:
+        tracker = ComponentTracker()
+        tracker.set_index_to_time_mapper(mapper)  # optional but required for min-lifespan filtering
+        tracker.set_minimum_component_lifespan("5d")  # optional; uses parse_free_format_time_to_seconds
+        tracker.update_global_components(prev_idx, next_idx, correspondence_dict)
+        ...
+        tracker.finalize()
+        tracker.reindex_global_components()
+        mapping = tracker.generate_full_local_to_global_mapping()
+    """
+
+    def __init__(self):
+        """
+        Initialize the tracker.
+
+        Attributes:
+            finalized_global_components (list): Finalized components.
+            active_global_components (list): Active components being tracked.
+            verbose (bool): Whether to print debug information.
+        """
+        self.finalized_global_components: List[GlobalConnectedComponent] = []
+        self.active_global_components: Optional[List[GlobalConnectedComponent]] = []
+        self.index_to_time_mapper = None
+        self.minimum_component_lifespan: Optional[float] = None  # seconds
+        self.verbose = False
+
+    def set_verbose(self, verbose: bool = True) -> None:
+        """Set the verbosity flag controlling diagnostic messages."""
+        self.verbose = verbose
+
+    def vprint(self, *args, **kwargs) -> None:
+        """Print only if verbose is True."""
+        if self.verbose:
+            print(*args, **kwargs)
+
+    def set_index_to_time_mapper(self, mapper) -> None:
+        """
+        Assign an `IndexToTimeMapper` to this tracker.
+
+        If not set, the tracker will not attempt to convert timestep
+        indices into elapsed time values for on-the-fly filtering.
+        """
+        self.index_to_time_mapper = mapper
+
+    def set_minimum_component_lifespan(self, minimum_component_lifespan_str: str) -> None:
+        """
+        Set the minimum lifespan (in seconds) that a component must have
+        to be kept by this tracker.
+
+        If not set, the tracker will not apply any minimum lifespan filter
+        during tracking.
+
+        Parameters
+        ----------
+        minimum_component_lifespan_str : str
+            A free-format duration string (e.g., "10m", "1h", "2d")
+            specifying the minimum lifespan to retain components.
+        """
+        self.minimum_component_lifespan = parse_free_format_time_to_seconds(
+            minimum_component_lifespan_str)
+
+    def update_global_components(self, prev_ts_idx: int, next_ts_idx: int, correspondence_dict: Dict[int, List[int]]) -> None:
+        """
+        Advance all active global components from prev_ts_idx to next_ts_idx,
+        given a mapping of prev_local_id -> list(next_local_ids).
+
+        Algorithm (as in notebook):
+         - For each active component: compute the set of new_local_ids
+           it maps to.
+         - If new_local_ids is empty -> component died: finalize and
+           possibly keep it depending on minimum_component_lifespan.
+         - Otherwise update the component and record membership to
+           detect merges.
+         - For any next_local_id that is reached from multiple
+           components -> merge them.
+         - For next_local_ids that are not yet covered by existing
+           components -> create new components.
+
+        Raises:
+          RuntimeError if the tracker has already been finalized.
+        """
+        if self.active_global_components is None:
+            raise RuntimeError('Cannot update finalized ComponentTracker - call finalize() only once')
+
+        self.vprint(f'Tracking global components between {prev_ts_idx} and '
+                    f'{next_ts_idx} with matches: {correspondence_dict}')
+
+        # What can happen?
+        # ... Continuation of existing component
+        # ... Merging of existing components
+        # ... Splitting component is ignored, once components merge, we consider
+        #     them as a single connected component
+        # ... New connected component
+        # ... Dying components
+
+        # Map next_local_id -> list of components that contribute to it (for
+        # merge detection)
+        local_id_to_component_dict: Dict[int, List[GlobalConnectedComponent]] = {}
+
+        # List to keep track of continued/modified components
+        continued_global_components: List[GlobalConnectedComponent] = []
+
+        # Step 1: Continue existing components
+        for c in self.active_global_components:
+            assert c.curr_local_ids is not None
+            # Map current local IDs to new local IDs for next timestep
+            new_local_ids = {
+                new_id
+                for local_id in c.curr_local_ids
+                for new_id in correspondence_dict.get(local_id, {})
+            }
+
+            self.vprint(f"Continuing component {c.global_id}: {c.curr_local_ids} "
+                        f"-> {new_local_ids}")
+
+            if not new_local_ids:
+                # Component died: finalize and optionally keep based on lifespan
+                self.vprint(f'Component {c.global_id} died')
+                c.finalize()
+                if (
+                    (self.index_to_time_mapper is None or self.minimum_component_lifespan is None)
+                    or c.lifetime(self.index_to_time_mapper) > self.minimum_component_lifespan
+                ):
+                    self.finalized_global_components.append(c)
+                else:
+                    self.vprint(f"Component {c.global_id} dropped by lifespan filter")
+            else:
+                # Continue component
+                c.update_curr_local_ids(new_local_ids, next_ts_idx)
+                # Add to dictionary that is used to detect component merges
+                for local_id in new_local_ids:
+                    local_id_to_component_dict.setdefault(local_id, []).append(c)
+                continued_global_components.append(c)
+
+        # Step 2: Handle merges (multiple components mapping to same next local id)
+        for merge_candidates in local_id_to_component_dict.values():
+            if len(merge_candidates) > 1:
+                # Components merge -> Keep first one and merge the others into it
+                component_to_keep = merge_candidates[0]
+                if not component_to_keep.is_finalized():
+                    for component_to_merge in merge_candidates[1:]:
+                        component_to_keep.merge(component_to_merge)
+                        continued_global_components.remove(component_to_merge)
+                        # Note: Merged components are not finalized separately.
+                        # Their history is absorbed into the kept component,
+                        # treating the merged entities as a single global component.
+
+        # Dictionary has become invalid, since we deleted components, so delete it
+        local_id_to_component_dict = None
+
+        # Step 3: Replace active component list with continued ones
+        self.active_global_components = continued_global_components
+
+        # Step 4: Create newly formed components for next_local_ids that are not yet covered
+        all_ids = {
+            cid
+            for cid_list in correspondence_dict.values()
+            for cid in cid_list
+         }
+        processed_ids = {
+            cid
+            for c in self.active_global_components
+            for cid in c.curr_local_ids
+        }
+
+        created_ids = all_ids - processed_ids
+        self.vprint(f'Creating new components for ids: {created_ids}')
+        for created_id in created_ids:
+            prev_components = {k for k, v in correspondence_dict.items() if created_id in v}
+            created_component = GlobalConnectedComponent(prev_components, prev_ts_idx)
+            created_component.update_curr_local_ids({created_id}, next_ts_idx)
+            self.active_global_components.append(created_component)
+
+        # Sanity assert: all next ids should now be accounted for
+        all_new_ids = {
+            cid
+            for id_list in correspondence_dict.values()
+            for cid in id_list
+        }
+        accounted_ids = {
+            cid
+            for c in self.active_global_components
+            for cid in c.curr_local_ids
+        }
+        self.vprint(f'All new ids: {all_new_ids}')
+        self.vprint(f'Accounted ids: {accounted_ids}')
+        assert all_new_ids == accounted_ids, \
+               f"Internal error: Expected IDs {all_new_ids} but accounted for IDs are {accounted_ids}"
+        self.vprint(self.active_global_components)
+
+    def finalize(self) -> None:
+        """
+        Finalize all active components (move them to finalized list).
+
+        Moves all active components to finalized components and
+        marks the tracker as finalized.
+        """
+        if self.active_global_components is None:
+            print("Warning: Ignoring finalize() on already finalized "
+                  "ComponentTracker!", file=sys.stderr)
+            return # Cannot finalize twice
+        for c in self.active_global_components:
+            c.finalize()
+            self.finalized_global_components.append(c)
+        self.active_global_components = None
+
+    def is_finalized(self):
+        """Return True if no active components remain."""
+        return self.active_global_components is None
+
+
+    def reindex_global_components(self) -> None:
+        """
+        Reassign consecutive global IDs to all finalized components.
+
+        This method sorts the list of finalized global components by their
+        current global ID and then reassigns new IDs starting at 1 in order.
+        It should only be called after the tracker has been finalized.
+
+        Side Effects:
+            - Changes `self.finalized_global_components` by updating each
+              component's `global_id` in ascending order.
+        """
+        if not self.is_finalized():
+            raise RuntimeError("reindex_global_components() should only be "
+                               "called on a finalized tracker.")
+        self.finalized_global_components.sort(key=lambda c: c.global_id)
+        for new_id, c in enumerate(self.finalized_global_components, start=1):
+            c.global_id = new_id
+
+    def filter_by_lifetime(self, minimum_lifetime_str, time_step_duration_str):
+        """
+        Filter finalized components by lifetime.
+
+        .. deprecated::
+            This method is deprecated in favor of on-the-fly filtering.
+            Use `set_minimum_component_lifespan()` before tracking to filter
+            components as they end, which is more memory-efficient.
+
+        This method can still be used to apply a post-hoc lifetime filter
+        after finalization if needed.
+
+        Args:
+            minimum_lifetime_str (str): Minimum lifetime as a free-format time string (e.g., '1h30m').
+            time_step_duration_str (str): Duration of one timestep as a free-format time string.
+
+        Raises:
+            ValueError: If tracker is not finalized yet.
+        """
+        minimum_lifetime_seconds = parse_free_format_time_to_seconds(minimum_lifetime_str)
+        time_step_duration_seconds = parse_free_format_time_to_seconds(time_step_duration_str)
+
+        if not self.is_finalized():
+            raise ValueError("Trying to filter by lifetime in unfinalized tracker!")
+        filtered_global_components = [
+            c for c in self.finalized_global_components
+            if c.lifetime() * time_step_duration_seconds > minimum_lifetime_seconds
+        ]
+        n_remaining = len(filtered_global_components)
+        n_removed = len(self.finalized_global_components) - n_remaining
+        print(f'Filtering removed {n_removed} components, {n_remaining} components remain.')
+        self.finalized_global_components = filtered_global_components
+        self.reindex_global_components()
+
+    def _repr_html_(self):
+        """Return an HTML representation for rich display in Jupyter notebooks."""
+        rstr = ""
+        for c in sorted(self.finalized_global_components, key=lambda item: item.global_id):
+            rstr += c._repr_html_() + '<br>'
+        return rstr
+
+    def __repr__(self):
+        """Return a developer-friendly string representation."""
+        rstr = 'ComponentTracker {\n'
+        rstr += f' finalized_global_components = {self.finalized_global_components}\n'
+        rstr += f' active_global_components = {self.active_global_components}\n'
+        rstr += '}'
+        return rstr
+
+    def generate_full_local_to_global_mapping(self) -> Dict[int, Dict[int, int]]:
+        """
+        Generate a full mapping of (timestep, local_id) → global_id
+        across all finalized components using a nested dictionary comprehension.
+
+        Should be called only on a finalized tracker.
+
+        Returns:
+            dict[int, dict[int, int]]: For each timestep, a dictionary mapping
+            all local IDs at that timestep to their global IDs.
+
+        Notes:
+            - Safe for multiple components in the same timestep.
+            - Keys (local IDs) are unique per timestep.
+        """
+        if not self.is_finalized():
+            raise RuntimeError("generate_full_local_to_global_mapping() should "
+                               "only be called on a finalized tracker.")
+
+        # Nested comprehension explanation:
+        # 1. Collect all (timestep, local_id → global_id) pairs from every component.
+        # 2. Group them by timestep into outer dictionary, combining mappings from multiple components.
+        return {
+            timestep: {
+                local_id: global_id
+                for comp in self.finalized_global_components
+                for ts, local_ids in comp.local_components_for_timestep_dict.items()
+                if ts == timestep
+                for local_id, global_id in ((lid, comp.global_id) for lid in local_ids)
+            }
+            for timestep in sorted({
+                ts
+                for comp in self.finalized_global_components
+                for ts in comp.local_components_for_timestep_dict.keys()
+            })
+        }
+
+# -----------------------------------------------------------------------------
+# Index -> time mappers
+# -----------------------------------------------------------------------------
+class IndexToTimeMapper:
+    """
+    Maps an integer index to elapsed time (in seconds) using a fixed timestep
+    duration (time_step_duration_str parsed with parse_free_format_time_to_seconds).
+
+    Example:
+        mapper = IndexToTimeMapper("3h")  # step = 3 hours
+        mapper[5] -> 54,000 # seconds (5 * 3 * 3600)
+    """
+    def __init__(self, time_step_duration_str: str):
+        """
+        Parameters
+        ----------
+        time_step_duration_str : str
+            A free-format duration string (e.g., "5m", "2h", "1d")
+            specifying the time step duration.
+        """
+        self.time_step_duration = parse_free_format_time_to_seconds(time_step_duration_str)
+
+    def __getitem__(self, idx: int) -> float:
+        """
+        Convert an integer index to the corresponding time value.
+
+        Parameters
+        ----------
+        idx : int
+            The index to convert.
+
+        Returns
+        -------
+        float
+            Time in seconds corresponding to `idx * time_step_duration`.
+        """
+        return idx * self.time_step_duration
+
+    def __repr__(self) -> str:
+        """Return a readable string representation of this mapper."""
+        return f"<IndexToTimeMapper step={self.time_step_duration}s>"
+
+
+# -----------------------------------------------------------------------------
+# Build mapping (main orchestration), using only csv parsing (no pandas)
+# -----------------------------------------------------------------------------
+def build_mapping_from_csv(csv_filename: str,
+                           min_lifespan_str: str,
+                           elapsed_time_per_index_str: Optional[str],
+                           elapsed_time_array: Optional[np.ndarray],
+                           verbose: bool = False) -> Tuple[Dict[int, Dict[int, int]], ComponentTracker]:
+    """
+    Read CSV, run the ComponentTracker over timesteps,
+    finalize and reindex components, and return the nested mapping and tracker.
+
+    Args:
+      - csv_filename: input csv file path
+      - min_lifespan_str: e.g., '5d'
+      - elapsed_time_per_index_str: fixed interval string (mutually exclusive with elapsed_time_array_file)
+      - elapsed_time_array_file: numpy array of elapsed times per index (in seconds)
+      - verbose: print extra debug messages
+
+    Returns:
+      - mapping: nested dictionary {timestep: {local_id: global_id}}
+      - tracker: ComponentTracker object containing finalized components
+    """
+    # Check if input file exists
+    if not os.path.exists(csv_filename):
+        raise FileNotFoundError(f"Input CSV file not found: {csv_filename}")
+
+    # Instantiate tracker and configure
+    tracker = ComponentTracker()
+    if elapsed_time_per_index_str is not None:
+        mapper = IndexToTimeMapper(elapsed_time_per_index_str)
+        tracker.set_index_to_time_mapper(mapper)
+    else:
+        # elapsed_time_array_file provided: we treat it as array of elapsed times per index
+        tracker.set_index_to_time_mapper(elapsed_time_array)
+    tracker.set_minimum_component_lifespan(min_lifespan_str)
+    tracker.set_verbose(verbose)
+
+    processed_prev_ts: Optional[int] = None
+    processed_next_ts: Optional[int] = None
+    correspondence_dict: Dict[int, List[int]] = {}
+
+    with open(csv_filename, 'r', newline='') as f:
+        reader = csv.reader(f, delimiter=',')
+        column_names_read = False  # header not yet consumed
+        for raw_line in reader:
+            if not raw_line:
+                continue
+            first = raw_line[0].strip()
+            if first.startswith('#'):
+                continue
+            if len(raw_line) == 4:
+                if not column_names_read:
+                    # assume first proper 4-column line is header; skip it
+                    column_names_read = True
+                    continue
+                try:
+                    prev_ts, prev_region, next_ts, next_region = map(int, raw_line)
+                except ValueError:
+                    print(f"Warning: ignoring malformed numeric line: {raw_line}",
+                        file=sys.stderr)
+                    continue
+
+                if processed_prev_ts is None:
+                    processed_prev_ts = prev_ts
+                    processed_next_ts = next_ts
+                else:
+                    if processed_prev_ts != prev_ts:
+                        tracker.update_global_components(processed_prev_ts,
+                            processed_next_ts, correspondence_dict)
+                        correspondence_dict = {}
+                        processed_prev_ts = prev_ts
+                        processed_next_ts = next_ts
+                    else:
+                        if processed_next_ts != next_ts:
+                            raise ValueError(
+                                f"Inconsistent CSV data at line with prev_ts={prev_ts}: "
+                                f"timestep {prev_ts} maps to both timestep {processed_next_ts} "
+                                f"and {next_ts}. All overlaps from timestep {prev_ts} must map "
+                                f"to the same consecutive timestep."
+                            )
+
+                correspondence_dict.setdefault(prev_region, []).append(next_region)
+
+            else:
+                # ignore malformed line lengths
+                print(f"Warning: ignoring malformed line (wrong column count): "
+                      f"{raw_line}", file=sys.stderr)
+                continue
+
+    # flush last group
+    if correspondence_dict:
+        tracker.update_global_components(processed_prev_ts, processed_next_ts, correspondence_dict)
+
+    # finalize and reindex
+    tracker.finalize()
+    tracker.reindex_global_components()
+
+    mapping = tracker.generate_full_local_to_global_mapping()
+    return mapping, tracker
+
+# -----------------------------------------------------------------------------
+# Command-line interface
+# -----------------------------------------------------------------------------
+def validate_arguments(args):
+    """
+    Validate command-line arguments for consistency.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Parsed command-line arguments
+    """
+    if not args.input_csv:
+        report_error_and_exit('input_csv cannot be empty', rank)
+
+    if not args.output_pickle:
+        report_error_and_exit('output_pickle cannot be empty', rank)
+
+    # Validate file extensions
+    if not args.output_pickle.endswith('.pkl') and rank == 0:
+        print(f"Warning: output_pickle '{args.output_pickle}' does not have .pkl extension",
+              file=sys.stderr)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Track blocking events across time steps to create global component IDs.",
+        formatter_class=lambda prog: argparse.ArgumentDefaultsHelpFormatter(
+                           prog, max_help_position=4, width=100))
+
+    parser.add_argument("input_csv",
+        help="Input tracking CSV file containing region overlaps between consecutive "
+             "time steps (generated by teca_blocking_event_create_overlap_table). "
+             "Comment lines starting with '#' and header row are automatically skipped.")
+    parser.add_argument("output_pickle",
+        help="Output pickle filename to save the mapping dictionary. "
+             "The mapping has format {timestep: {local_id: global_id}}.")
+    parser.add_argument("--min-lifespan", default="5d",
+        help="Minimum component lifespan to keep. Components with shorter lifespans "
+             "are filtered out. Use free-format time strings (e.g., '5d', '1w', '72h').")
+    parser.add_argument("--verbose", action="store_true",
+        help="Enable verbose debug printing for component tracking.")
+
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--elapsed-time-per-index",
+        help="Fixed timestep interval as free-format time string (e.g., '3h', '6h'). "
+             "Use this when all timesteps have equal spacing.")
+    group.add_argument("--elapsed-time-array-file",
+        help="Path to .npy file containing elapsed times (in seconds) since timestep 0 "
+             "for each index. Use this when timesteps have variable spacing "
+             "(can be generated by teca_blocking_event_create_overlap_table with --output_times_file).")
+
+    # Only MPI rank 0 prints parse errors to avoid clutter
+    try:
+        args = parser.parse_args()
+    except Exception:
+        if rank == 0:
+            raise
+        sys.exit(-1)
+
+    # Validate arguments
+    validate_arguments(args)
+
+    # Load lifespan array if provided
+    try:
+        elapsed_time_array = None
+        if args.elapsed_time_array_file:
+            elapsed_time_array = np.load(args.elapsed_time_array_file)
+
+        # Build mapping
+        mapping, tracker = build_mapping_from_csv(
+            csv_filename=args.input_csv,
+            min_lifespan_str=args.min_lifespan,
+            elapsed_time_per_index_str=args.elapsed_time_per_index,
+            elapsed_time_array=elapsed_time_array,
+            verbose=args.verbose
+        )
+
+        # Save mapping to pickle
+        with open(args.output_pickle, "wb") as pf:
+            pickle.dump(mapping, pf, protocol=pickle.HIGHEST_PROTOCOL)
+
+        if rank == 0:
+            print(f'Mapping written to {args.output_pickle}')
+            print(f'Total components tracked: {len(tracker.finalized_global_components)}')
+
+    except (FileNotFoundError, ValueError) as e:
+        report_error_and_exit(str(e), rank)
+
+if __name__ == "__main__":
+    main()

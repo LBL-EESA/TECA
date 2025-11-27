@@ -825,6 +825,7 @@ def create_argument_parser():
         help=f'background ID value used in component labeling (default:'
              f' {DEFAULT_BACKGROUND_ID})')
 
+    # Verbosity and threading
     parser.add_argument('--verbose', action='store_true',
         help='enable verbose output for debugging')
 

@@ -780,10 +780,50 @@ teca_add_app_test(test_blocking_event_detect_blobs_app
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
+teca_add_app_test(test_blocking_event_detect_blobs_app_mpi
+    teca_blocking_event_detect_blobs
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_blocking_event_detect_blobs.sh
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1
+    ${MPIEXEC} ${TEST_CORES}
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
 teca_add_app_test(test_blocking_event_create_overlap_table_app
     teca_blocking_event_create_overlap_table
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_blocking_event_create_overlap_table.sh
     ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_app_test(test_blocking_event_create_overlap_table_app_mpi
+    teca_blocking_event_create_overlap_table
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_blocking_event_create_overlap_table.sh
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1
+    ${MPIEXEC} ${TEST_CORES}
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_app_test(test_blocking_event_tracker_app
+    teca_blocking_event_tracker
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_blocking_event_tracker.sh
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+# NOTE: teca_blocking_event_tracker is not MPI capable at this time
+
+teca_add_app_test(test_blocking_event_relabel_app
+    teca_blocking_event_relabel
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_blocking_event_relabel.sh
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1
+    FEATURES ${TECA_HAS_NETCDF}
+    REQ_TECA_DATA)
+
+teca_add_app_test(test_blocking_event_relabel_app_mpi
+    teca_blocking_event_relabel
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_blocking_event_relabel.sh
+    ${CMAKE_BINARY_DIR}/${BIN_PREFIX} ${TECA_DATA_ROOT} -1
+    ${MPIEXEC} ${TEST_CORES}
     FEATURES ${TECA_HAS_NETCDF}
     REQ_TECA_DATA)
 
