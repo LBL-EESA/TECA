@@ -1,6 +1,6 @@
 Command Line Applications
 =========================
-TECA's command line applications deliver the highest perfromance, while
+TECA's command line applications deliver the highest performance, while
 providing a good deal of flexibility for common use cases.  This section
 describes how to run TECA's command line applications. If you need more
 flexibility or functionality not packaged in a command line application consider
@@ -14,75 +14,76 @@ modules loaded) and to load the teca modulefiles as late as possible.  For
 instance when running in a batch script on the Cray load the teca module in the
 batch script rather than in your shell.
 
-+-------------------------------------------------+----------------------------+
-| **Application**                                 | **Description**            |
-+-------------------------------------------------+----------------------------+
-| :ref:`teca_metadata_probe`                      | A diagnostic tool used for |
-|                                                 | run planning               |
-+-------------------------------------------------+----------------------------+
-| :ref:`teca_integrated_vapor_transport`          | Computes IVT (integrated   |
-|                                                 | vapor transport)           |
-+-------------------------------------------------+----------------------------+
-| :ref:`teca_integrated_water_vapor`              | Computes IWV (integrated   |
-|                                                 | water vapor)               |
-+-------------------------------------------------+----------------------------+
-| :ref:`teca_bayesian_ar_detect`                  | AR detection with          |
-|                                                 | uncertainty quantification |
-+-------------------------------------------------+----------------------------+
-| :ref:`teca_deeplab_ar_detect`                   | A machine learning based   |
-|                                                 | AR detector                |
-+-------------------------------------------------+----------------------------+
-| :ref:`teca_temporal_reduction`                  | Computes reductions (min,  |
-|                                                 | max, average, summation)   |
-|                                                 | over the time dimension    |
-+-------------------------------------------------+----------------------------+
-| :ref:`teca_tc_detect`                           | TC detection using GFDL    |
-|                                                 | algorithm                  |
-+-------------------------------------------------+----------------------------+
-| :ref:`teca_tc_trajectory`                       | Computes TC tracks from a  |
-|                                                 | set of candidates          |
-+-------------------------------------------------+----------------------------+
-| :ref:`teca_tc_wind_radii`                       | Computes storm size from a |
-|                                                 | set of TC tracks           | 
-+-------------------------------------------------+----------------------------+
-| :ref:`teca_potential_intensity`                 | Computes thermodynamic     |
-|                                                 | potential intensity of     |
-|                                                 | tropical cyclones          | 
-+-------------------------------------------------+----------------------------+
-| :ref:`teca_tc_stats`                            | Computes descriptive       |
-|                                                 | statistics from a set of   |
-|                                                 | TC tracks                  |
-+-------------------------------------------------+----------------------------+
-| :ref:`teca_tc_trajectory_scalars`               | Plots tracks on a map      |
-|                                                 | along with GFDL detectors  |
-|                                                 | parameters                 |
-+-------------------------------------------------+----------------------------+
-| :ref:`teca_tc_wind_radii_stats`                 | Computes descriptive       |
-|                                                 | statistics relating to TC  |
-|                                                 | storm size                 |
-+-------------------------------------------------+----------------------------+
-| :ref:`teca_convert_table`                       | Convert tabular data from  |
-|                                                 | one file format to another |
-+-------------------------------------------------+----------------------------+
-| :ref:`teca_event_filter`                        | Select TC tracks using run |
-|                                                 | time provided expressions  |
-+-------------------------------------------------+----------------------------+
-| :ref:`teca_cf_restripe`                         | Convert the internal layout|
-|                                                 | of a dataset on disk with  |
-|                                                 | optional subsetting and/or |
-|                                                 | regridding.                |
-+-------------------------------------------------+----------------------------+
-| :ref:`teca_blocking_event_detect_blobs`         | Detect blocking event      | 
-|                                                 | candidates as geopotential |
-|                                                 | height anomalies above a   |
-|                                                 | size threshold.            |
-+-------------------------------------------------+----------------------------+
-| :ref:`teca_blocking_event_create_overlap_table` | Create tracking table for  |
-|                                                 | blocking event candidates  |
-|                                                 | by analyzing spatial       |
-|                                                 | overlap between            |
-|                                                 | consecutive time steps.    |
-+-------------------------------------------------+----------------------------+
++-------------------------------------------------+-----------------------------------+
+| **Application**                                 | **Description**                   |
++-------------------------------------------------+-----------------------------------+
+| :ref:`teca_metadata_probe`                      | A diagnostic tool used for run    |
+|                                                 | planning                          |
++-------------------------------------------------+-----------------------------------+
+| :ref:`teca_integrated_vapor_transport`          | Computes IVT (integrated vapor    |
+|                                                 | transport)                        |
++-------------------------------------------------+-----------------------------------+
+| :ref:`teca_integrated_water_vapor`              | Computes IWV (integrated water    |
+|                                                 | vapor)                            |
++-------------------------------------------------+-----------------------------------+
+| :ref:`teca_bayesian_ar_detect`                  | AR detection with uncertainty     |
+|                                                 | quantification                    |
++-------------------------------------------------+-----------------------------------+
+| :ref:`teca_deeplab_ar_detect`                   | A machine learning based AR       |
+|                                                 | detector                          |
++-------------------------------------------------+-----------------------------------+
+| :ref:`teca_temporal_reduction`                  | Computes reductions (min, max,    |
+|                                                 | average, summation) over the time |
+|                                                 | dimension                         |
++-------------------------------------------------+-----------------------------------+
+| :ref:`teca_tc_detect`                           | TC detection using GFDL algorithm |
++-------------------------------------------------+-----------------------------------+
+| :ref:`teca_tc_trajectory`                       | Computes TC tracks from a set of  |
+|                                                 | candidates                        |
++-------------------------------------------------+-----------------------------------+
+| :ref:`teca_tc_wind_radii`                       | Computes storm size from a set of |
+|                                                 | TC tracks                         |
++-------------------------------------------------+-----------------------------------+
+| :ref:`teca_potential_intensity`                 | Computes thermodynamic potential  |
+|                                                 | intensity of tropical cyclones    |
++-------------------------------------------------+-----------------------------------+
+| :ref:`teca_tc_stats`                            | Computes descriptive statistics   |
+|                                                 | from a set of TC tracks           |
++-------------------------------------------------+-----------------------------------+
+| :ref:`teca_tc_trajectory_scalars`               | Plots tracks on a map along with  |
+|                                                 | GFDL detectors parameters         |
++-------------------------------------------------+-----------------------------------+
+| :ref:`teca_tc_wind_radii_stats`                 | Computes descriptive statistics   |
+|                                                 | relating to TC storm size         |
++-------------------------------------------------+-----------------------------------+
+| :ref:`teca_convert_table`                       | Convert tabular data from one     |
+|                                                 | file format to another            |
++-------------------------------------------------+-----------------------------------+
+| :ref:`teca_event_filter`                        | Select TC tracks using run time   |
+|                                                 | provided expressions              |
++-------------------------------------------------+-----------------------------------+
+| :ref:`teca_cf_restripe`                         | Convert the internal layout of a  |
+|                                                 | dataset on disk with optional     |
+|                                                 | subsetting and/or regridding.     |
++-------------------------------------------------+-----------------------------------+
+| :ref:`teca_blocking_event_detect_blobs`         | Detect blocking event candidates  |
+|                                                 | as geopotential height anomalies  |
+|                                                 | above a size threshold.           |
++-------------------------------------------------+-----------------------------------+
+| :ref:`teca_blocking_event_create_overlap_table` | Create tracking table for         |
+| (implements a part of TempestExtremes           | blocking event candidates by      |
+| StitchBlobs)                                    | analyzing spatial overlap between |
+|                                                 | consecutive time steps.           |
++-------------------------------------------------+-----------------------------------+
+| :ref:`teca_blocking_event_tracker`              | Track blocking events and assign  |
+| (implements a part of TempestExtremes           | global track IDs by identifying   |
+| StitchBlobs)                                    | connected components over time    |
+|                                                 | based on overlap table.           |
++-------------------------------------------------+-----------------------------------+
+| :ref:`teca_blocking_event_relabel`              | Relabel blocking event IDs with   |
+| (implements a part of TempestExtremes           | global track IDs based on tracker |
+| StitchBlobs)                                    | mapping.                          |
++-------------------------------------------------+-----------------------------------+
 
 Applying the Command Line Applications at Scale
 -----------------------------------------------
@@ -105,7 +106,7 @@ setting paths such that the versions of dependencies, such as Python and
 NetCDF, that TECA was compiled against are found at runtime as well as a number
 of other settings.
 
-The TECA_sueprbuild is used to install TECA at NERSC. The process is described
+The TECA_superbuild is used to install TECA at NERSC. The process is described
 in more detail in :ref:`install_hpc`.  During the install an environment
 modules modulefile is generated and installed. Using TECA on NERSC's
 Cray systems requires loading the modulefile.
@@ -143,10 +144,10 @@ The following install groups are located in `/global/common/software/m1517/`:
 +-------------------+----------------------------------------------------------+
 | perlmutter_gpu    | Installs for NERSC Perlmutter NVIDIA GPU partition       |
 +-------------------+----------------------------------------------------------+
-| perlmutter_cpu    | Installs for NERSC Perlmutter Millan Milan CPU partition |
+| perlmutter_cpu    | Installs for NERSC Perlmutter Milan CPU partition        |
 +-------------------+----------------------------------------------------------+
 
-In order to use the `develp` install one would include commands similar to the
+In order to use the `develop` install one would include commands similar to the
 following at the top of their batch scripts.
 
 .. code-block:: bash
@@ -192,7 +193,7 @@ Common (/global/common/software/)
     This parallel file system is optimized for software installs. It delivers a
     simlar performance to the scratch file system and is not periodically
     purged. The common file system is a good option for locating an install.
-    An effective stratgey for deploying TECA at NERSC is to place installs on
+    An effective strategy for deploying TECA at NERSC is to place installs on
     in common and the data to be processed on scratch.
 
 Project/Community ($CFS)
@@ -722,7 +723,7 @@ Command Line Arguments
     `--input_regex`.
 
 --input_regex arg
-    a teca_cf_reader regex identyifying the set of NetCDF CF2 files to process. When present data
+    a teca_cf_reader regex identifying the set of NetCDF CF2 files to process. When present data
     is read using the teca_cf_reader. Use one of either `--input_file` or `--input_regex`.
 
 --x_axis_variable arg (=lon)
@@ -2363,174 +2364,6 @@ Analyses produced by the stats stage
         .. figure:: ./images/1990s_cam5_amip1_hero_stats/stats_1990s_3hr_distribution_1.png
 
             Parameter Dist.
-#!/bin/bash
-#SBATCH -A m1517
-#SBATCH -J detect_blobs
-#SBATCH -N 32
-#SBATCH -C gpu
-#SBATCH -q regular
-#SBATCH -t 00:30:00
-
-# Setup (replace later with loading new TECA module)
-module swap gpu cpu
-source /global/cfs/cdirs/m1517/ghweber/teca/bin/teca_env.sh
-export PYTHONPATH=~/devel/TECA/build/lib:$PYTHONPATH
-export PATH=~/devel/TECA/build/bin:$PATH
-
-# Print the commands as they execute, and error out if any one command fails
-set -e
-set -x
-
-# Set up variables for directories
-data_dir=${SCRATCH}/TECA
-input_blocktag_dir=${data_dir}/MERRA2_blocktag
-output_overlap_dir=${data_dir}
-
-# Run table matching
-srun -n 32 --gpus-per-task=4 teca_blocking_event_stitch_blobs \
-    --input_file ${input_blocktag_dir}/../MERRA2_blocktag.mcf \
-    --output_file ${output_overlap_dir}/MERRA2_overlaps.csv \
-    --output_times_file ${output_overlap_dir}/MERRA2_times.npy
-#!/bin/bash
-#SBATCH -A m1517
-#SBATCH -J detect_blobs
-#SBATCH -N 32
-#SBATCH -C gpu
-#SBATCH -q regular
-#SBATCH -t 00:30:00
-
-# Setup (replace later with loading new TECA module)
-module swap gpu cpu
-source /global/cfs/cdirs/m1517/ghweber/teca/bin/teca_env.sh
-export PYTHONPATH=~/devel/TECA/build/lib:$PYTHONPATH
-export PATH=~/devel/TECA/build/bin:$PATH
-
-# Print the commands as they execute, and error out if any one command fails
-set -e
-set -x
-
-# Set up variables for directories
-data_dir=${SCRATCH}/TECA
-input_blocktag_dir=${data_dir}/MERRA2_blocktag
-output_overlap_dir=${data_dir}
-
-# Run table matching
-srun -n 32 --gpus-per-task=4 teca_blocking_event_stitch_blobs \
-    --input_file ${input_blocktag_dir}/../MERRA2_blocktag.mcf \
-    --output_file ${output_overlap_dir}/MERRA2_overlaps.csv \
-    --output_times_file ${output_overlap_dir}/MERRA2_times.npy
-#!/bin/bash
-#SBATCH -A m1517
-#SBATCH -J detect_blobs
-#SBATCH -N 32
-#SBATCH -C gpu
-#SBATCH -q regular
-#SBATCH -t 00:30:00
-
-# Setup (replace later with loading new TECA module)
-module swap gpu cpu
-source /global/cfs/cdirs/m1517/ghweber/teca/bin/teca_env.sh
-export PYTHONPATH=~/devel/TECA/build/lib:$PYTHONPATH
-export PATH=~/devel/TECA/build/bin:$PATH
-
-# Print the commands as they execute, and error out if any one command fails
-set -e
-set -x
-
-# Set up variables for directories
-data_dir=${SCRATCH}/TECA
-input_blocktag_dir=${data_dir}/MERRA2_blocktag
-output_overlap_dir=${data_dir}
-
-# Run table matching
-srun -n 32 --gpus-per-task=4 teca_blocking_event_stitch_blobs \
-    --input_file ${input_blocktag_dir}/../MERRA2_blocktag.mcf \
-    --output_file ${output_overlap_dir}/MERRA2_overlaps.csv \
-    --output_times_file ${output_overlap_dir}/MERRA2_times.npy
-#!/bin/bash
-#SBATCH -A m1517
-#SBATCH -J detect_blobs
-#SBATCH -N 32
-#SBATCH -C gpu
-#SBATCH -q regular
-#SBATCH -t 00:30:00
-
-# Setup (replace later with loading new TECA module)
-module swap gpu cpu
-source /global/cfs/cdirs/m1517/ghweber/teca/bin/teca_env.sh
-export PYTHONPATH=~/devel/TECA/build/lib:$PYTHONPATH
-export PATH=~/devel/TECA/build/bin:$PATH
-
-# Print the commands as they execute, and error out if any one command fails
-set -e
-set -x
-
-# Set up variables for directories
-data_dir=${SCRATCH}/TECA
-input_blocktag_dir=${data_dir}/MERRA2_blocktag
-output_overlap_dir=${data_dir}
-
-# Run table matching
-srun -n 32 --gpus-per-task=4 teca_blocking_event_stitch_blobs \
-    --input_file ${input_blocktag_dir}/../MERRA2_blocktag.mcf \
-    --output_file ${output_overlap_dir}/MERRA2_overlaps.csv \
-    --output_times_file ${output_overlap_dir}/MERRA2_times.npy
-#!/bin/bash
-#SBATCH -A m1517
-#SBATCH -J detect_blobs
-#SBATCH -N 32
-#SBATCH -C gpu
-#SBATCH -q regular
-#SBATCH -t 00:30:00
-
-# Setup (replace later with loading new TECA module)
-module swap gpu cpu
-source /global/cfs/cdirs/m1517/ghweber/teca/bin/teca_env.sh
-export PYTHONPATH=~/devel/TECA/build/lib:$PYTHONPATH
-export PATH=~/devel/TECA/build/bin:$PATH
-
-# Print the commands as they execute, and error out if any one command fails
-set -e
-set -x
-
-# Set up variables for directories
-data_dir=${SCRATCH}/TECA
-input_blocktag_dir=${data_dir}/MERRA2_blocktag
-output_overlap_dir=${data_dir}
-
-# Run table matching
-srun -n 32 --gpus-per-task=4 teca_blocking_event_stitch_blobs \
-    --input_file ${input_blocktag_dir}/../MERRA2_blocktag.mcf \
-    --output_file ${output_overlap_dir}/MERRA2_overlaps.csv \
-    --output_times_file ${output_overlap_dir}/MERRA2_times.npy
-#!/bin/bash
-#SBATCH -A m1517
-#SBATCH -J detect_blobs
-#SBATCH -N 32
-#SBATCH -C gpu
-#SBATCH -q regular
-#SBATCH -t 00:30:00
-
-# Setup (replace later with loading new TECA module)
-module swap gpu cpu
-source /global/cfs/cdirs/m1517/ghweber/teca/bin/teca_env.sh
-export PYTHONPATH=~/devel/TECA/build/lib:$PYTHONPATH
-export PATH=~/devel/TECA/build/bin:$PATH
-
-# Print the commands as they execute, and error out if any one command fails
-set -e
-set -x
-
-# Set up variables for directories
-data_dir=${SCRATCH}/TECA
-input_blocktag_dir=${data_dir}/MERRA2_blocktag
-output_overlap_dir=${data_dir}
-
-# Run table matching
-srun -n 32 --gpus-per-task=4 teca_blocking_event_stitch_blobs \
-    --input_file ${input_blocktag_dir}/../MERRA2_blocktag.mcf \
-    --output_file ${output_overlap_dir}/MERRA2_overlaps.csv \
-    --output_times_file ${output_overlap_dir}/MERRA2_times.npy
 
       - .. _ass:
 
@@ -3535,20 +3368,51 @@ Command Line Arguments
 --help
     displays documentation for application specific command line options
 
+Blocking event detection
+------------------------
+Atmospheric blocking events are persistent, quasi-stationary high-pressure
+systems that disrupt normal weather patterns and can lead to extreme weather
+conditions such as heat waves, droughts, or cold spells. The following
+applications implement a complete pipeline for detecting and tracking blocking
+events based on geopotential height anomalies, following the methodology
+described in :cite:`TempestExtremes`.
+
+The pipeline consists of four sequential steps: (1) detecting blocking event
+candidates as labeled connected components using
+:ref:`teca_blocking_event_detect_blobs`, (2) creating a spatial overlap table
+between consecutive time steps with :ref:`teca_blocking_event_create_overlap_table`,
+(3) tracking events over time and filtering by duration using
+:ref:`teca_blocking_event_tracker`, and (4) relabeling local IDs with globally
+unique track IDs via :ref:`teca_blocking_event_relabel`. Each application can be
+executed independently but must be run in this sequence to complete the full
+tracking workflow. The following sections describe each application in detail,
+with examples using MERRA2 reanalysis data.
+
+In TempestExtremes terminology, `teca_blocking_event_detect_blobs` implements a
+subset of `DetectBlobs` relavant to blocking event detection, and the other
+tools split TempestExtremes `StitchBlobs` into three separate applications,
+teca_blocking_event_create_overlap_table (identify overlaping regions between
+consecutive time steps), teca_blocking_event_tracker (track blocking events
+over time based on the overlap table produced by
+`teca_blocking_event_create_overlap_table`), and teca_blocking_event_relabel
+(relabeling local IDs with globally unique track IDs identified by
+`teca_blocking_event_tracker`).
+
 .. _teca_blocking_event_detect_blobs:
 
 teca_blocking_event_detect_blobs
 ---------------------------------
 
-The `teca_blocking_event_detect_blobs` application implements a part of the TempestExtremes
-pipeline to detect blocking events via connected component labeling of geopotential
-height anomalies. This application is based on the methodology described in Ullrich et al. (2021).
+The `teca_blocking_event_detect_blobs` application implements a part of the
+TempestExtremes pipeline to detect blocking events via connected component
+labeling of geopotential height anomalies. This application is based on the
+methodology described in :cite:`TempestExtremes`.
 
-The application identifies regions where geopotential height at 500 hPa exceeds a
-daily threshold value. These threshold values are provided in a separate dataset
-containing one year of daily data (365 time steps). The application performs
-connected component labeling on the identified anomalies, filters components by
-area, and writes the results to NetCDF files.
+The application identifies regions where geopotential height at 500 hPa exceeds
+a daily threshold value. These threshold values are provided in a separate
+dataset containing one year of daily data (365 time steps). The application
+performs connected component labeling on the identified anomalies, filters
+components by area, and writes the results to NetCDF files.
 
 Unlike the original TempestExtremes implementation, this application directly
 outputs connected component IDs rather than binary masks (unless the option
@@ -3685,7 +3549,7 @@ This example illustrates detecting blocking events in the MERRA dataset. The scr
 reads geopotential height data at 500 hPa, compares it to daily threshold values,
 and identifies regions meeting the blocking criteria.
 
-IMPORTANT: Computing the thresholds file is not implemented in TECA, yet. Please
+IMPORTANT: Computing the thresholds file is not yet implemented in TECA. Please
 use TempestExtremes or another tool to generate the thresholds file prior to running
 this example.
 
@@ -3778,15 +3642,19 @@ this example.
 teca_blocking_event_create_overlap_table
 -----------------------------------------
 
-The `teca_blocking_event_create_overlap_table` application implements a part of the
-TempestExtremes pipeline for tracking blocking events by stitching together blobs
-(connected components) across consecutive time steps based on spatial overlap.
+The `teca_blocking_event_create_overlap_table` application implements a part of
+TempestExtremes 'StitchBlobs' for tracking blocking events by stitching together
+blobs (connected components) across consecutive time steps based on spatial
+overlap.
 
-This application takes as input the output of `teca_blocking_event_detect_blobs`,
-which contains labeled blocking events at each time step. It analyzes the overlap
-between blobs in consecutive time steps and generates a tracking table that links
-regions across time based on a minimum overlap threshold. The tracking table serves
-as input to subsequent steps for assigning global track IDs and filtering by duration.
+This application takes as input the output of
+`teca_blocking_event_detect_blobs`, which contains labeled blocking events at
+each time step. It analyzes the overlap between blobs in consecutive time steps
+and generates a tracking table that links regions across time based on a minimum
+overlap threshold. The tracking table serves as input to subsequent steps for
+assigning global track IDs as well as filtering by duration
+(`teca_blocking_event_tracker`) and relabeling local component IDs to global
+track IDs (`teca_blocking_event_relabel`).
 
 The tracking table contains four columns:
 
@@ -3795,22 +3663,28 @@ The tracking table contains four columns:
 - time_index_2: Time index of the second (later) time step
 - region_id_2: Region ID in the second time step
 
-Together with subsequent applications (yet to be implemented), this implements the
-functionality of TempestExtremes StitchBlobs for blocking event tracking as described
-in Ullrich et al. (2021).
+Together with 'teca_blocking_event_tracker' and 'teca_blocking_event_relabel',
+this application implements the functionality of TempestExtremes StitchBlobs for
+blocking event tracking as described in :cite:`TempestExtremes`.
 
 Inputs
 ~~~~~~
 
 A 2D time dependent mesh in NetCDF CF2 format with labeled blocking event IDs
 (typically the output from `teca_blocking_event_detect_blobs`)
+**IMPORTANT:** The input data must contain unique region IDs per time step so
+that relabeling is possible in the final time step. This is achieved by omitting
+the `--discard-unique-region-ids` option in `teca_blocking_event_detect_blobs`.
 
 Outputs
 ~~~~~~~
 
 * A CSV table listing region pairs that meet the minimum overlap threshold
-* An optional NumPy file containing elapsed time information
-  (if --output_times_file is specified)
+* An optional NumPy file containing elapsed time information (if the
+'--output_times_file' option is specified). This file contains elapsed
+seconds since time step 0 for each processed time step and is primarily for
+use by `teca_blocking_event_tracker` to filter tracked blocking events by
+duration.
 
 Command Line Arguments
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -3885,6 +3759,299 @@ spatial overlap.
 
     #!/bin/bash
     #SBATCH -A m1517
+    #SBATCH -J create_overlap_table
+    #SBATCH -N 32
+    #SBATCH -C gpu
+    #SBATCH -q regular
+    #SBATCH -t 01:30:00
+
+    # Setup (replace later with loading new TECA module)
+    module swap gpu cpu
+    source /global/cfs/cdirs/m1517/ghweber/teca/bin/teca_env.sh
+    export PYTHONPATH=~/devel/TECA/build/lib:$PYTHONPATH
+    export PATH=~/devel/TECA/build/bin:$PATH
+
+    # Print the commands as they execute, and error out if any one command fails
+    set -e
+    set -x
+
+    # Set up variables for directories
+    data_dir=${SCRATCH}/TECA/BlockingEvent
+    input_blocktag_dir=${data_dir}/MERRA2_blocktag
+    output_overlap_dir=${data_dir}
+
+    # Run table matching
+    srun -n 32 --gpus-per-task=4 teca_blocking_event_create_overlap_table \
+        --input_file ${input_blocktag_dir}/../MERRA2_blocktag.mcf \
+        --output_file ${output_overlap_dir}/MERRA2_overlaps.csv \
+        --output_times_file ${output_overlap_dir}/MERRA2_times.npy
+
+This script processes the blocking event files to create a CSV table showing which
+regions in consecutive time steps overlap by at least 20% (default overlap threshold
+from paper). The optional times file records elapsed seconds for each time step,
+which is used in subsequent steps to filter blocking events by lifetime.
+
+.. _teca_blocking_event_tracker:
+
+teca_blocking_event_tracker
+---------------------------
+
+The `teca_blocking_event_tracker` application implements a part of
+TempestExtremes 'StitchBlobs' for tracking blocking events by stitching together
+blobs (connected components) across consecutive time steps based on spatial
+overlap. This application tracks connected components over time using and
+assigns unique global track IDs to each blocking event.
+
+This application reads the overlap table produced by
+`teca_blocking_event_create_overlap_table` with pairwise overlaps between
+labeled regions in individual time steps and creates a graph that correlates
+them over time. It then assigns a unique global ID to each connected component
+in the resulting tracking graph. It also applies a minimum lifetime filter to
+remove short-lived events (lasting less than 5 days per default, per
+:cite:`TempestExtremes`) and produces a mapping dictionary that links local
+region IDs at each timestep to their corresponding global track IDs.
+
+Together with `teca_blocking_event_create_overlap_table` and
+`teca_blocking_event_relabel`, this application implements the functionality of
+TempestExtremes StitchBlobs for blocking event tracking as described in
+:cite:`TempestExtremes`.
+
+**IMPORTANT**: This application is not MPI-parallelized and runs on a single rank.
+
+Inputs
+~~~~~~
+
+* A CSV table listing region pairs that meet minimum overlap threshold (generated
+  by `teca_blocking_event_create_overlap_table`)
+* Either a fixed timestep interval (via `--elapsed-time-per-index`), i.e., the
+elapsed time per index OR the filename of an NumPy file containing an array of
+elapsed times per timestep index
+
+Outputs
+~~~~~~~
+
+A Python pickle file containing a nested mapping dictionary with format:
+
+.. code-block:: python
+
+    {
+        timestep_index: {
+            local_region_id: global_track_id,
+            ...
+        },
+        ...
+    }
+
+This mapping is used by `teca_blocking_event_relabel` to relable local regions IDs
+assigned by `teca_blocking_event_detect_blobs` to globally unique track IDs.
+
+Command Line Arguments
+~~~~~~~~~~~~~~~~~~~~~~
+
+positional arguments:
+  input_csv             Input tracking CSV file containing region overlaps between
+                        consecutive time steps (generated by
+                        teca_blocking_event_create_overlap_table). Comment lines starting
+                        with '#' and header row are automatically skipped.
+
+  output_pickle         Output pickle filename to save the mapping dictionary. The mapping
+                        has format {timestep: {local_id: global_id}}.
+
+required mutually exclusive arguments (exactly one required):
+  --elapsed-time-per-index ELAPSED_TIME_PER_INDEX
+                        Fixed timestep interval as free-format time string (e.g., '3h',
+                        '6h'). This option assumes that all timesteps have equal spacing.
+                        Use when all time steps have equal spacing and no file with
+                        elapsed times is available.
+
+  --elapsed-time-array-file LIFESPAN_ARRAY_FILE
+                        Path to .npy file containing elapsed times (in seconds) since
+                        timestep 0 for each index. Use this when timesteps have variable
+                        spacing (can be generated by 'teca_blocking_event_create_overlap_table'
+                        with the option '--output_times_file').
+
+optional arguments:
+  -h, --help            shows help message and exit
+
+  --min-lifespan MIN_LIFESPAN
+                        Minimum component lifespan to keep. Components with shorter
+                        lifespans are filtered out. Use free-format time strings (e.g.,
+                        '5d', '1w', '72h'). (default: 5d as per :cite:`TempestExtremes`)
+
+  --verbose             Enable verbose debug printing for component tracking. (default: False)
+
+Time Format Specification
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Free-format time strings support the following units (case-sensitive):
+
+* y = years (365 days assumed)
+* M = months (30 days assumed)
+* d = days
+* h = hours
+* m = minutes
+* s = seconds
+
+Units may appear in any order and are optional. Examples: '5d', '1w2d', '3h30m', '10m'.
+
+Examples
+~~~~~~~~
+
+Tracking with Fixed Timestep Interval
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When your data has uniform timestep spacing (e.g., 3-hourly data), use the
+`--elapsed-time-per-index` option:
+
+.. code-block:: bash
+
+    data_dir=${SCRATCH}/TECA/BlockingEvent
+    teca_blocking_event_tracker \
+        ${data_dir}/MERRA2_overlaps.csv \
+        ${data_dir}/MERRA2_local_to_global_mapping.pkl \
+        --elapsed-time-per-index 3h
+
+This processes the overlap table and creates global track IDs for all blocking events
+that persist for at least 5 days (default).
+
+Tracking with Variable Timestep Spacing
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When timesteps have irregular spacing or you want more precise lifetime calculations,
+use the `--elapsed-time-array-file` option with the elapsed times array generated by
+`teca_blocking_event_create_overlap_table`:
+
+.. code-block:: bash
+
+    data_dir=${SCRATCH}/TECA/BlockingEvent
+    teca_blocking_event_tracker \
+        ${data_dir}/MERRA2_overlaps.csv \
+        ${data_dir}/MERRA2_local_to_global_mapping.pkl \
+        --elapsed-time-array-file ${data_dir}/MERRA2_times.npy
+
+.. _teca_blocking_event_relabel:
+
+teca_blocking_event_relabel
+----------------------------
+
+The `teca_blocking_event_relabel` application implements the final step of the
+TempestExtremes pipeline for blocking event tracking. It reads the
+locally-labeled blocking event IDs (from `teca_blocking_event_detect_blobs`) and
+the mapping dictionary (from `teca_blocking_event_tracker`) to create NetCDF
+files with globally unique track IDs.
+
+This application processes the input NetCDF files containing local blocking
+event IDs and uses the mapping dictionary to assign globally unique track IDs to
+each blocking event. The output files contain both the original local IDs and
+the new global track IDs, allowing for comprehensive analysis of blocking event
+lifecycles.
+
+Together with `teca_blocking_event_create_overlap_table` and
+`teca_blocking_event_tracker`, this application completes the TempestExtremes
+'StitchBlobs' functionality for blocking event tracking as described in
+:cite:`TempestExtremes`.
+
+Inputs
+~~~~~~
+
+* NetCDF files with locally-labeled blocking event IDs (from
+`teca_blocking_event_detect_blobs` **without** the
+`--discard-unique-region-ids` option)
+* A mapping pickle file (from `teca_blocking_event_tracker`)
+
+Outputs
+~~~~~~~
+
+NetCDF files containing:
+
+* Original local blocking event IDs (blocking_event_id)
+* Globally unique track IDs (global_blocking_event_id)
+
+Command Line Arguments
+~~~~~~~~~~~~~~~~~~~~~~
+
+Input data (mutually exclusive, one required):
+  --input_file INPUT_FILE
+                        a teca_multi_cf_reader configuration file identifying the set of
+                        NetCDF CF2 files to process. When present data is read using the
+                        teca_multi_cf_reader. Use one of either --input_file or --input_regex.
+
+  --input_regex INPUT_REGEX
+                        a teca_cf_reader regex identifying the set of NetCDF CF2 files to
+                        process. When present data is read using the teca_cf_reader. Use one
+                        of either --input_file or --input_regex.
+
+Variable names:
+  --blocking_event_id_variable BLOCKING_EVENT_ID_VARIABLE
+                        name of variable with blocking event ID (default: blocking_event_id)
+
+  --x_axis_variable X_AXIS_VARIABLE
+                        name of x coordinate variable (default: lon)
+
+  --y_axis_variable Y_AXIS_VARIABLE
+                        name of y coordinate variable (default: lat)
+
+  --t_axis_variable T_AXIS_VARIABLE
+                        time dimension name (default: time)
+
+Relabeling configuration:
+  --mapping_file MAPPING_FILE
+                        Path to a Python pickle file containing a dictionary for remapping
+                        IDs. (required)
+
+  --background_id BACKGROUND_ID
+                        background ID value used in component labeling (default: 0)
+
+  --include_local_ids   If specified, write the local blocking event IDs to the output file
+                        in addition to the global IDs. By default, only global IDs are written.
+
+Output configuration:
+  --output_file OUTPUT_FILE
+                        A path and file name pattern for the output NetCDF files. %t% is
+                        replaced with a human readable date and time corresponding to the
+                        time of the first time step in the file. Use --date_format to change
+                        the formatting (required)
+
+  --file_layout FILE_LAYOUT
+                        Selects the size and layout of the set of output files. May be one of
+                        number_of_steps, daily, monthly, seasonal, or yearly. Files are
+                        structured such that each file contains one of the selected interval.
+                        For the number_of_steps option use --steps_per_file. (default: monthly)
+
+  --steps_per_file STEPS_PER_FILE
+                        number of time steps per output file if file_layout is set to
+                        number_of_steps (default: 128)
+
+  --date_format DATE_FORMAT
+                        A strftime format used when encoding dates into the output file names
+                        (default: %F-%HZ). %t% in the file name is replaced with date/time of
+                        the first time step in the file using this format specifier.
+
+  --first_step FIRST_STEP
+                        first time step to process (default: 0)
+
+  --last_step LAST_STEP
+                        last time step to process. -1 means the last available time step
+                        (default: -1)
+
+  --calendar CALENDAR   time calendar
+
+  --t_units T_UNITS     time unit
+
+Examples
+~~~~~~~~
+
+Finalizing Blocking Event Tracking by Assigning Global IDs
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This example shows the final step in blocking event detection, assigning global
+IDs to complete the workflow from blob detection through tracking to relabeling,
+using MERRA2 data:
+
+.. code-block:: bash
+
+    #!/bin/bash
+    #SBATCH -A m1517
     #SBATCH -J detect_blobs
     #SBATCH -N 32
     #SBATCH -C gpu
@@ -3902,17 +4069,14 @@ spatial overlap.
     set -x
 
     # Set up variables for directories
-    data_dir=${SCRATCH}/TECA
+    data_dir=${SCRATCH}/TECA/BlockingEvent
     input_blocktag_dir=${data_dir}/MERRA2_blocktag
+    output_globalid_dir=${data_dir}/MERRA2_globalid
+    mkdir -p ${output_globalid_dir}
     output_overlap_dir=${data_dir}
 
-    # Run table matching
-    srun -n 32 --gpus-per-task=4 teca_blocking_event_create_overlap_table \
+    srun -n 32 --gpus-per-task=4 teca_blocking_event_relabel \
         --input_file ${input_blocktag_dir}/../MERRA2_blocktag.mcf \
-        --output_file ${output_overlap_dir}/MERRA2_overlaps.csv \
-        --output_times_file ${output_overlap_dir}/MERRA2_times.npy
-
-This script processes the blocking event files to create a CSV table showing which
-regions in consecutive time steps overlap by at least 20% (default overlap threshold
-from paper). The optional times file records elapsed seconds for each time step,
-which is used in subsequent steps to filter blocking events by lifetime.
+        --mapping_file ${data_dir}/MERRA2_local_to_global_mapping.pkl \
+        --output_file ${output_globalid_dir}/MERRA2_globalid_%t%.nc4 \
+        --file_layout daily
