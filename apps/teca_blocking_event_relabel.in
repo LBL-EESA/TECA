@@ -1,0 +1,588 @@
+#!/usr/bin/env python@TECA_PYTHON_VERSION@
+
+# This application implements the relabeling step of the TempestExtremes pipeline
+# for tracking blocking events. It takes as input:
+#   1. NetCDF files with locally-labeled blocking event IDs (from teca_blocking_event_detect_blobs)
+#   2. A mapping dictionary that maps local IDs to global track IDs (from teca_blocking_event_tracker)
+#
+# This application implements part of "3.6.3 Step 3: stitch regions across time" of:
+#   Ullrich, P. A., Zarzycki, C. M., McClenny, E. E., Pinheiro, M. C.,
+#   Stansfield, A. M., and Reed, K. A.: TempestExtremes v2.1: a community
+#   framework for feature detection, tracking, and analysis in large datasets,
+#   Geosci. Model Dev., 14, 5023–5048, https://doi.org/10.5194/gmd-14-5023-2021,
+#   2021.
+#
+# The application reads the tracking mapping (created by teca_blocking_event_tracker)
+# and applies it to relabel regions with globally unique track IDs. The output contains
+# both the original local blocking event IDs and the new global track IDs.
+#
+# Together with teca_blocking_event_create_overlap_table and
+# teca_blocking_event_tracker, this application implements the functionality of
+# TempestExtremes StitchBlobs for blocking event tracking as described in the
+# above paper.
+
+try:
+    from mpi4py import MPI
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+except ImportError:
+    comm = None
+    rank = 0
+
+import argparse
+import pickle
+import sys
+import teca
+from teca_blocking_event_operations import ReLabelOp
+from teca_blocking_event_helper_functions import report_error_and_exit
+
+# Default variable names
+DEFAULT_X_AXIS_VARIABLE = 'lon'
+DEFAULT_Y_AXIS_VARIABLE = 'lat'
+DEFAULT_T_AXIS_VARIABLE = 'time'
+DEFAULT_BLOCKING_EVENT_ID_VARIABLE = 'blocking_event_id'
+DEFAULT_BACKGROUND_ID = 0
+
+class teca_blocking_event_relabel:
+    """
+    A class that encapsulates the blocking event relabeling pipeline.
+
+    This class provides a reusable component for relabeling blocking event IDs
+    based on a mapping dictionary. It can accept input from any TECA algorithm
+    and provide output to any TECA algorithm.
+    """
+    def __init__(self):
+        """
+        Initialize the relabeling pipeline.
+
+        Creates a new instance with default parameter values. All configuration
+        must be set using the setter methods before building the pipeline.
+        """
+        # Placeholders for input node and pipeline
+        self.input_node = None
+        self.pipeline_tail = None
+
+        # Variable names
+        self.blocking_event_id_varname = DEFAULT_BLOCKING_EVENT_ID_VARIABLE
+        self.global_blocking_event_id_varname = (
+            'global_' + DEFAULT_BLOCKING_EVENT_ID_VARIABLE
+        )
+
+        # Relabeling parameters
+        self.background_id = DEFAULT_BACKGROUND_ID
+        self.relabel_mapping = None
+        self.relabel_mapping_file = None
+
+    def _ensure_pipeline_not_built(self) -> None:
+        """
+        Ensure that the pipeline has not been built yet.
+
+        Raises
+        ------
+        RuntimeError
+            If the pipeline has already been built
+        """
+        if self.pipeline_tail is not None:
+            raise RuntimeError(
+                "Parameters can only be set before pipeline is built.")
+
+    def set_blocking_event_id_varname(self, varname: str) -> None:
+        """
+        Set the blocking event ID variable name.
+
+        Parameters
+        ----------
+        varname : str
+            Name of blocking event ID variable
+        """
+        self._ensure_pipeline_not_built()
+        if not varname:
+            raise ValueError("variable_name cannot be empty")
+        self.blocking_event_id_varname = varname
+        self.global_blocking_event_id_varname = 'global_' + varname
+
+    def set_background_id(self, background_id: int) -> None:
+        """
+        Set the background ID value.
+
+        Parameters
+        ----------
+        background_id : int
+            Background ID value
+        """
+        self._ensure_pipeline_not_built()
+        self.background_id = background_id
+
+    def set_relabel_mapping(self, relabel_mapping: dict) -> None:
+        """
+        Set the relabel mapping dictionary directly.
+
+        This is mutually exclusive with set_relabel_mapping_file().
+
+        Parameters
+        ----------
+        relabel_mapping : dict
+            Mapping dictionary with format {<timestep>: {<local_id>: <global_id>}}
+        """
+        self._ensure_pipeline_not_built()
+        if self.relabel_mapping_file is not None:
+            raise RuntimeError(
+                "Cannot set relabel_mapping when relabel_mapping_file is already set. "
+                "Use either set_relabel_mapping() or set_relabel_mapping_file(), not both.")
+        if relabel_mapping is None:
+            raise ValueError("relabel_mapping cannot be None")
+        self.relabel_mapping = relabel_mapping
+
+    def set_relabel_mapping_file(self, mapping_file: str) -> None:
+        """
+        Set the path to a pickle file containing the relabel mapping.
+
+        This is mutually exclusive with set_relabel_mapping().
+
+        Parameters
+        ----------
+        mapping_file : str
+            Path to a Python pickle file containing a dictionary for remapping IDs
+        """
+        self._ensure_pipeline_not_built()
+        if self.relabel_mapping is not None:
+            raise RuntimeError(
+                "Cannot set relabel_mapping_file when relabel_mapping is already set. "
+                "Use either set_relabel_mapping() or set_relabel_mapping_file(), not both.")
+        if not mapping_file:
+            raise ValueError("mapping_file cannot be empty")
+        self.relabel_mapping_file = mapping_file
+
+    def set_input_node(self, input_node: 'teca.teca_algorithm') -> None:
+        """
+        Set the input node for the relabeling pipeline.
+
+        IMPORTANT: Differing from typical TECA algorithms, we need an
+        input node and not an input port because we need to be able to
+        call update_metadata() on the input node to get metadata for
+        building the pipeline.
+
+        Parameters
+        ----------
+        input_node : teca.teca_algorithm
+            Input node for the pipeline
+        """
+        self._ensure_pipeline_not_built()
+        if input_node is None:
+            raise ValueError("input_node cannot be None")
+        self.input_node = input_node
+
+    def get_output_node(self) -> 'teca.teca_algorithm':
+        """
+        Get the output node of the relabeling pipeline.
+
+        Returns
+        -------
+        output_node : teca.teca_algorithm
+            Output node of the pipeline
+        """
+        if self.pipeline_tail is None:
+            self._build_pipeline()
+        return self.pipeline_tail
+
+    def get_output_port(self) -> 'teca.teca_algorithm.OutputPort':
+        """
+        Get the output port of the relabeling pipeline.
+
+        Returns
+        -------
+        output_port : teca.teca_algorithm.OutputPort
+            Output port of the pipeline
+        """
+        if self.pipeline_tail is None:
+            self._build_pipeline()
+        return self.pipeline_tail.get_output_port()
+
+    def get_global_blocking_event_id_varname(self) -> str:
+        """
+        Get the name of the relabeled variable.
+
+        Returns
+        -------
+        relabeled_varname : str
+            Name of the relabeled variable
+        """
+        if self.pipeline_tail is None:
+            self._build_pipeline()
+        return self.global_blocking_event_id_varname
+
+    def _get_and_validate_metadata(self, input_node, required_vars=None):
+        """
+        Get metadata and validate it.
+
+        Parameters
+        ----------
+        input_node : teca.teca_algorithm
+            Node from teca pipeline to get metadata from
+        required_vars : list of str, optional
+            List of required variable names for validation
+            If None, no variable validation is performed (default: None)
+
+        Returns
+        -------
+        metadata : teca_metadata
+            Validated metadata object
+        """
+        try:
+            metadata = input_node.update_metadata()
+        except Exception as e:
+            raise RuntimeError(
+                f'Failed to read metadata from input node. '
+                f'This may indicate an issue with the input data source. Error: {e}')
+
+        # Validate required variables for input data
+        if required_vars is not None:
+            try:
+                available_vars = metadata.get('variables')
+            except Exception:  # teca_metadata may raise various exceptions - catch all
+                available_vars = []
+            missing_vars = [var for var in required_vars if var not in available_vars]
+            if missing_vars:
+                raise RuntimeError(
+                    f'Required variable(s) {missing_vars} not found in input. '
+                    f'Available variables: {available_vars}. '
+                    f'Please check that your input contains the required variables.')
+
+        return metadata
+
+    def _load_relabel_mapping(self):
+        """
+        Load the relabel mapping from file if necessary.
+
+        Returns
+        -------
+        relabel_mapping : dict
+            The loaded or provided mapping dictionary
+        """
+        if self.relabel_mapping is not None:
+            return self.relabel_mapping
+        elif self.relabel_mapping_file is not None:
+            try:
+                with open(self.relabel_mapping_file, 'rb') as f:
+                    return pickle.load(f)
+            except Exception as e:
+                raise RuntimeError(
+                    f'Failed to load mapping file {self.relabel_mapping_file}: {e}')
+        else:
+            raise RuntimeError(
+                "Either relabel_mapping or relabel_mapping_file must be set. "
+                "Call set_relabel_mapping() or set_relabel_mapping_file().")
+
+    def _build_pipeline(self):
+        """
+        Build the relabeling pipeline.
+        """
+        if self.input_node is None:
+            raise RuntimeError(
+                "Input connection must be set before building the pipeline. "
+                "Call set_input_node() to configure the input data source.")
+
+        # Load the mapping dictionary (from file or direct setting)
+        relabel_mapping = self._load_relabel_mapping()
+
+        # Get and validate metadata
+        normalize_input_coords_md = self._get_and_validate_metadata(
+            self.input_node,
+            [self.blocking_event_id_varname])
+
+        # Create the relabel operation
+        relabel_ids = teca.teca_derived_quantity.New()
+        relabel_ids.set_operation_name('relabel_ids')
+        relabel_ids.set_input_connection(self.input_node.get_output_port())
+        dependent_vars = [self.blocking_event_id_varname]
+        relabel_ids.set_dependent_variables(dependent_vars)
+
+        # Configure output attributes
+        try:
+            attributes = normalize_input_coords_md['attributes']
+            in_atts = teca.teca_array_attributes(
+                attributes[self.blocking_event_id_varname])
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to get attributes for variable '{self.blocking_event_id_varname}'. "
+                f"Ensure the variable exists in input metadata. Error: {e}")
+        out_atts = teca.teca_array_attributes(
+            teca.teca_int_array_code.get(),
+            teca.teca_array_attributes.point_centering,
+            0, in_atts.mesh_dim_active, 'unitless',
+            self.global_blocking_event_id_varname,
+            'globally unique blocking event IDs', None)
+        relabel_ids.append_derived_variable(self.global_blocking_event_id_varname, out_atts)
+
+        # Set the execute callback
+        relabel_ids_op = ReLabelOp(
+            self.blocking_event_id_varname,
+            self.background_id,
+            relabel_mapping,
+            self.global_blocking_event_id_varname)
+        relabel_ids.set_execute_callback(relabel_ids_op)
+
+        self.pipeline_tail = relabel_ids
+
+
+def create_argument_parser():
+    """
+    Create and configure the command-line argument parser.
+
+    Returns
+    -------
+    parser : argparse.ArgumentParser
+        Configured argument parser
+    """
+    parser = argparse.ArgumentParser(
+        formatter_class=lambda prog: argparse.ArgumentDefaultsHelpFormatter(
+                           prog, max_help_position=4, width=100))
+
+    # Input data options (mutually exclusive)
+    input_group = parser.add_mutually_exclusive_group(required=True)
+    input_group.add_argument('--input_file', type=str,
+        help='a teca_multi_cf_reader configuration file identifying the set'
+             ' of NetCDF CF2 files to process. When present data is read'
+             ' using the teca_multi_cf_reader. Use one of either --input_file'
+             ' or --input_regex.')
+
+    input_group.add_argument('--input_regex', type=str,
+        help='a teca_cf_reader regex identifying the'
+             ' set of NetCDF CF2 files to process. When present data is read'
+             ' using the teca_cf_reader. Use one of either --input_file or '
+             ' --input_regex.')
+
+    # Variable names
+    parser.add_argument('--blocking_event_id_variable', type=str,
+        required=False, default=DEFAULT_BLOCKING_EVENT_ID_VARIABLE,
+        help='name of variable with blocking event ID')
+
+    parser.add_argument('--x_axis_variable', type=str,
+        default=DEFAULT_X_AXIS_VARIABLE, required=False,
+        help=f'name of x coordinate variable (default: {DEFAULT_X_AXIS_VARIABLE})')
+
+    parser.add_argument('--y_axis_variable', type=str,
+        default=DEFAULT_Y_AXIS_VARIABLE, required=False,
+        help=f'name of y coordinate variable (default: {DEFAULT_Y_AXIS_VARIABLE})')
+
+    parser.add_argument('--t_axis_variable', type=str,
+        default=DEFAULT_T_AXIS_VARIABLE, required=False,
+        help=f'time dimension name (default: {DEFAULT_T_AXIS_VARIABLE})')
+
+    # Relabeling parameters
+    parser.add_argument('--mapping_file', type=str, required=True,
+        help='Path to a Python pickle file containing a dictionary for remapping IDs.')
+
+    parser.add_argument('--background_id', type=int, default=DEFAULT_BACKGROUND_ID,
+        required=False,
+        help=f'background ID value used in component labeling (default:'
+             f' {DEFAULT_BACKGROUND_ID})')
+
+    parser.add_argument('--include_local_ids', action='store_true',
+        required=False,
+        help='If specified, write the local blocking event IDs to the output file'
+             ' in addition to the global IDs. By default, only global IDs are written.')
+
+    # Output configuration
+    parser.add_argument('--output_file', type=str, required=True,
+        help='A path and file name pattern for the output NetCDF files. %%t%% is'
+             ' replaced with a human readable date and time corresponding to the'
+             ' time of the first time step in the file. Use --date_format to change'
+             ' the formatting')
+
+    parser.add_argument('--file_layout', type=str, default='monthly',
+        help='Selects the size and layout of the set of output files. May be one'
+             ' of number_of_steps, daily, monthly, seasonal, or yearly. Files are'
+             ' structured such that each file contains one of the selected'
+             ' interval. For the number_of_steps option use --steps_per_file.')
+
+    parser.add_argument('--steps_per_file', type=int, required=False, default=128,
+        help='number of time steps per output file (default: 128)')
+
+    parser.add_argument('--date_format', type=str, required=False,
+        help='A strftime format used when encoding dates into the output file'
+             ' names (%%F-%%HZ). %%t%% in the file name is replaced with date/time'
+             ' of the first time step in the file using this format specifier.')
+
+    parser.add_argument('--first_step', type=int, default=0, required=False,
+        help='first time step to process (default: 0)')
+
+    parser.add_argument('--last_step', type=int, default=-1, required=False,
+        help='last time step to process. -1 means entire dataset (default: -1)')
+
+    parser.add_argument('--calendar', type=str, required=False,
+        help='time calendar')
+
+    parser.add_argument('--t_units', type=str, required=False,
+        help='time unit')
+
+    parser.add_argument('--n_threads', type=int, default=-1,
+        required=False,
+        help='number of threads for the writer. -1 means one thread per physical'
+             ' core (default: -1)')
+
+    return parser
+
+
+def validate_arguments(args, rank):
+    """
+    Validate command-line arguments for consistency.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Parsed command-line arguments
+    rank : int
+        MPI rank for conditional error reporting
+    """
+    # Validate variable names are not empty
+    if (not args.blocking_event_id_variable or
+        not args.blocking_event_id_variable.strip()):
+        report_error_and_exit('blocking_event_id_variable cannot be empty', rank)
+
+    if not args.x_axis_variable or not args.x_axis_variable.strip():
+        report_error_and_exit('x_axis_variable cannot be empty', rank)
+
+    if not args.y_axis_variable or not args.y_axis_variable.strip():
+        report_error_and_exit('y_axis_variable cannot be empty', rank)
+
+    if not args.t_axis_variable or not args.t_axis_variable.strip():
+        report_error_and_exit('t_axis_variable cannot be empty', rank)
+
+    # Validate required file paths are not empty
+    if not args.mapping_file or not args.mapping_file.strip():
+        report_error_and_exit('mapping_file cannot be empty', rank)
+
+    if not args.output_file or not args.output_file.strip():
+        report_error_and_exit('output_file cannot be empty', rank)
+
+    # Validate file layout and steps
+    if args.file_layout == 'number_of_steps' and args.steps_per_file <= 0:
+        report_error_and_exit(
+            'steps_per_file must be positive when using number_of_steps layout',
+            rank)
+
+    if args.first_step < 0:
+        report_error_and_exit('first_step cannot be negative', rank)
+
+    if args.last_step != -1 and args.last_step < args.first_step:
+        report_error_and_exit('last_step must be >= first_step or -1', rank)
+
+    if args.n_threads < 1 and args.n_threads != -1:
+        report_error_and_exit('n_threads must be >= 1 (or -1 for one thread per'
+                              ' physical core)', rank)
+
+def create_input_reader(args):
+    """
+    Configure and return the input data reader.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Command-line arguments containing input configuration
+
+    Returns
+    -------
+    reader : teca.teca_cf_reader or teca.teca_multi_cf_reader
+        Configured reader for input data
+    """
+    if args.input_file:
+        reader = teca.teca_multi_cf_reader.New()
+        reader.set_input_file(args.input_file)
+    else:
+        reader = teca.teca_cf_reader.New()
+        reader.set_files_regex(args.input_regex)
+
+    reader.set_x_axis_variable(args.x_axis_variable)
+    reader.set_y_axis_variable(args.y_axis_variable)
+    reader.set_t_axis_variable(args.t_axis_variable)
+
+    if args.calendar:
+        reader.set_calendar(args.calendar)
+    if args.t_units:
+        reader.set_t_units(args.t_units)
+
+    return reader
+
+
+def build_relabeling_pipeline(args, rank):
+    """
+    Build the complete relabeling pipeline.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Configuration from command line
+    rank : int
+        MPI rank
+
+    Returns
+    -------
+    writer : teca.teca_cf_writer
+        Configured pipeline ready to execute
+    """
+    # Setup reader
+    input_reader = create_input_reader(args)
+
+    # Normalize coordinates
+    normalize_input_coordinates = teca.teca_normalize_coordinates.New()
+    normalize_input_coordinates.set_input_connection(
+        input_reader.get_output_port())
+
+    # Create and initialize relabeling pipeline
+    relabel_pipeline = teca_blocking_event_relabel()
+    relabel_pipeline.set_input_node(normalize_input_coordinates)
+    relabel_pipeline.set_blocking_event_id_varname(args.blocking_event_id_variable)
+    relabel_pipeline.set_background_id(args.background_id)
+    relabel_pipeline.set_relabel_mapping_file(args.mapping_file)
+
+    # Get the relabeled variable name
+    global_blocking_event_id_varname = relabel_pipeline.get_global_blocking_event_id_varname()
+
+    # Configure the writer
+    exe = teca.teca_index_executive.New()
+    writer = teca.teca_cf_writer.New()
+    writer.set_input_connection(relabel_pipeline.get_output_port())
+    writer.set_executive(exe)
+    writer.set_thread_pool_size(args.n_threads)
+    writer.set_file_name(args.output_file)
+    writer.set_layout(args.file_layout)
+    writer.set_steps_per_file(args.steps_per_file)
+    writer.set_first_step(args.first_step)
+    writer.set_last_step(args.last_step)
+
+    # Set output arrays based on --include_local_ids flag
+    if args.include_local_ids:
+        writer.set_point_arrays([args.blocking_event_id_variable, global_blocking_event_id_varname])
+    else:
+        writer.set_point_arrays([global_blocking_event_id_varname])
+
+    if args.date_format:
+        writer.set_date_format(args.date_format)
+
+    return writer
+
+
+def main():
+    """Main entry point for blocking event relabeling."""
+    # Create parser and parse arguments
+    parser = create_argument_parser()
+
+    # Only MPI rank 0 prints parse errors to avoid clutter
+    try:
+        args = parser.parse_args()
+    except Exception:
+        if rank == 0:
+            raise
+        sys.exit(-1)
+
+    # Validate configuration
+    validate_arguments(args, rank)
+
+    # Build and run pipeline
+    pipeline = build_relabeling_pipeline(args, rank)
+    pipeline.update()
+
+
+if __name__ == '__main__':
+    main()

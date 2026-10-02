@@ -9,10 +9,16 @@
 #  MPI4Py_VERSION, mpi4py release version
 set(_TMP_PY_OUTPUT)
 set(_TMP_PY_RETURN)
-exec_program("${PYTHON_EXECUTABLE}"
-  ARGS "-c 'import mpi4py; print(mpi4py.get_include())'"
+#exec_program("${PYTHON_EXECUTABLE}"
+#  ARGS "-c 'import mpi4py; print(mpi4py.get_include())'"
+#  OUTPUT_VARIABLE _TMP_PY_OUTPUT
+#  RETURN_VALUE _TMP_PY_RETURN)
+execute_process(
+  COMMAND "${PYTHON_EXECUTABLE}" -c "import mpi4py; print(mpi4py.get_include())"
   OUTPUT_VARIABLE _TMP_PY_OUTPUT
-  RETURN_VALUE _TMP_PY_RETURN)
+  RESULT_VARIABLE _TMP_PY_RETURN
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
 set(MPI4Py_INCLUDE_FOUND FALSE)
 if(NOT _TMP_PY_RETURN AND EXISTS "${_TMP_PY_OUTPUT}")
   set(MPI4Py_INCLUDE_FOUND TRUE)
@@ -24,12 +30,19 @@ set(MPI4Py_INCLUDE_DIR "${_TMP_PY_OUTPUT}" CACHE PATH
 
 set(_TMP_PY_OUTPUT)
 set(_TMP_PY_RETURN)
-exec_program("${PYTHON_EXECUTABLE}"
-  ARGS "-c 'import mpi4py; print(mpi4py.__version__)'"
+#exec_program("${PYTHON_EXECUTABLE}"
+#  ARGS "-c 'import mpi4py; print(mpi4py.__version__)'"
+#  OUTPUT_VARIABLE _TMP_PY_OUTPUT
+#  RETURN_VALUE _TMP_PY_RETURN)
+execute_process(
+  COMMAND "${PYTHON_EXECUTABLE}" -c "import mpi4py; print(mpi4py.__version__)"
   OUTPUT_VARIABLE _TMP_PY_OUTPUT
-  RETURN_VALUE _TMP_PY_RETURN)
+  RESULT_VARIABLE _TMP_PY_RETURN
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
 set(MPI4Py_VERSION_FOUND FALSE)
-if(NOT _TMP_PY_RETURN)
+#if(NOT _TMP_PY_RETURN)
+if(_TMP_PY_RETURN EQUAL 0)
   set(MPI4Py_VERSION_FOUND TRUE)
 else()
   set(_TMP_PY_OUTPUT)

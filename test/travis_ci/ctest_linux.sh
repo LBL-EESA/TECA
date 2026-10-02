@@ -11,6 +11,14 @@ then
     module load mpi
 fi
 source `pwd`/../tci/bin/activate
+
+echo "PYTHON_EXECUTABLE test:"
+python3 -c "import sys; print(sys.executable)"
+python3 -c "import numpy; print(numpy.get_include())"
+python3 -c "import numpy; print(numpy.version.version)"
+python3 -c "import mpi4py; print(mpi4py.get_include())"
+python3 -c "import mpi4py; print(mpi4py.__version__)"
+
 set -x
 
 export NETCDF_BUILD_TYPE="netcdf"

@@ -1,6 +1,6 @@
 #!/bin/bash
 set -x
-
+echo "===== RUNNING install_fedora_37.sh ====="
 systemctl status firewalld
 sudo systemctl stop firewalld
 
@@ -21,9 +21,20 @@ else
 fi
 
 set +x
+echo "===== START install_fedora_37.sh ====="
+
+echo "===== BEFORE MODULE INIT ====="
+ls -l /usr/share/Modules/init/bash
+
+echo "===== SOURCING MODULES ====="
 source /usr/share/Modules/init/bash
+echo "===== AFTER MODULE INIT ====="
+
+echo "===== LOADING MPI ====="
 module load mpi/mpich-x86_64
+echo "===== AFTER MPI MODULE ====="
 set -x
+
 
 echo ${TRAVIS_BRANCH}
 echo ${BUILD_TYPE}
@@ -36,7 +47,19 @@ python3 -mvenv `pwd`/../tci
 set +x
 source `pwd`/../tci/bin/activate
 set -x
-pip3 install "numpy<2.0" mpi4py==3.1.6 matplotlib torch
+#pip3 install "numpy<2.0" mpi4py==3.1.6 matplotlib torch
+
+echo "===== INSTALLING PYTHON PACKAGES ====="
+which python3
+which pip3
+python3 --version
+python3 -m pip --version
+
+python3 -m pip install "numpy<2.0" mpi4py==3.1.6 matplotlib torch
+
+echo "===== VERIFYING PYTHON PACKAGES ====="
+python3 -c "import numpy; print('NumPy:', numpy.__version__, numpy.__file__)"
+python3 -c "import mpi4py; print('mpi4py:', mpi4py.__version__, mpi4py.__file__)"
 
 # install data files.
 svn co svn://svn.code.sf.net/p/teca/TECA_data@${TECA_DATA_REVISION} TECA_data
