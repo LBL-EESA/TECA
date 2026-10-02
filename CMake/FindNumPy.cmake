@@ -8,26 +8,47 @@
 #  NumPy_INCLUDE_DIR, where to find c-api headers
 #  NumPy_VERSION, numpy release version
 
-set(_TMP_PY_OUTPUT)
-set(_TMP_PY_RETURN)
-exec_program("${PYTHON_EXECUTABLE}"
-  ARGS "-c 'import numpy; print(numpy.get_include())'"
+#set(_TMP_PY_OUTPUT)
+#set(_TMP_PY_RETURN)
+#exec_program("${PYTHON_EXECUTABLE}"
+#  ARGS "-c 'import numpy; print(numpy.get_include())'"
+#  OUTPUT_VARIABLE _TMP_PY_OUTPUT
+#  RETURN_VALUE _TMP_PY_RETURN)
+#set(NumPy_INCLUDE_FOUND FALSE)
+#if(NOT _TMP_PY_RETURN AND EXISTS "${_TMP_PY_OUTPUT}")
+#  set(NumPy_INCLUDE_FOUND TRUE)
+#else()
+#  set(_TMP_PY_OUTPUT)
+#endif()
+
+execute_process(
+  COMMAND "${PYTHON_EXECUTABLE}" -c "import numpy; print(numpy.get_include())"
   OUTPUT_VARIABLE _TMP_PY_OUTPUT
-  RETURN_VALUE _TMP_PY_RETURN)
+  RESULT_VARIABLE _TMP_PY_RETURN
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
 set(NumPy_INCLUDE_FOUND FALSE)
-if(NOT _TMP_PY_RETURN AND EXISTS "${_TMP_PY_OUTPUT}")
+if(_TMP_PY_RETURN EQUAL 0 AND EXISTS "${_TMP_PY_OUTPUT}")
   set(NumPy_INCLUDE_FOUND TRUE)
 else()
   set(_TMP_PY_OUTPUT)
 endif()
 set(NumPy_INCLUDE_DIR "${_TMP_PY_OUTPUT}")
 
+
 set(_TMP_PY_OUTPUT)
 set(_TMP_PY_RETURN)
-exec_program("${PYTHON_EXECUTABLE}"
-  ARGS "-c 'import numpy; print(numpy.version.version)'"
+#exec_program("${PYTHON_EXECUTABLE}"
+#  ARGS "-c 'import numpy; print(numpy.version.version)'"
+#  OUTPUT_VARIABLE _TMP_PY_OUTPUT
+#  RETURN_VALUE _TMP_PY_RETURN)
+execute_process(
+  COMMAND "${PYTHON_EXECUTABLE}" -c "import numpy; print(numpy.version.version)"
   OUTPUT_VARIABLE _TMP_PY_OUTPUT
-  RETURN_VALUE _TMP_PY_RETURN)
+  RESULT_VARIABLE _TMP_PY_RETURN
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
 set(NumPy_VERSION_FOUND FALSE)
 if(NOT _TMP_PY_RETURN)
   set(NumPy_VERSION_FOUND TRUE)
