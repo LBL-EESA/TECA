@@ -544,7 +544,14 @@ class ComponentTracker:
             return # Cannot finalize twice
         for c in self.active_global_components:
             c.finalize()
-            self.finalized_global_components.append(c)
+            if (
+                self.minimum_component_lifespan is None
+                or c.lifetime(self.index_to_time_mapper) > self.minimum_component_lifespan
+            ):
+                self.finalized_global_components.append(c)
+            else:
+                self.vprint(f"Component {c.global_id} dropped by lifespan filter")
+
         self.active_global_components = None
 
     def is_finalized(self):
