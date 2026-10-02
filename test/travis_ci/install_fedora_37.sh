@@ -36,7 +36,17 @@ python3 -mvenv `pwd`/../tci
 set +x
 source `pwd`/../tci/bin/activate
 set -x
-pip3 install "numpy<2.0" mpi4py==3.1.6 matplotlib torch
+#pip3 install "numpy<2.0" mpi4py==3.1.6 matplotlib torch
+
+python3 -m pip install "numpy<2.0" mpi4py==3.1.6 matplotlib torch
+
+which python3
+which pip3
+python3 --version
+python3 -m pip --version
+
+python3 -c "import numpy; print('NumPy:', numpy.__version__, numpy.__file__)"
+python3 -c "import mpi4py; print('mpi4py:', mpi4py.__version__, mpi4py.__file__)"
 
 # install data files.
 svn co svn://svn.code.sf.net/p/teca/TECA_data@${TECA_DATA_REVISION} TECA_data
