@@ -983,7 +983,7 @@ def main():
             input_coords = input_md['coordinates']
             t = input_coords['t']
             first_step = args.first_step
-            last_step = args.last_step if args.last_step >= 0 else t.size - 2
+            last_step = args.last_step if args.last_step >= 0 else t.size - 1
 
             elapsed_seconds = calculate_elapsed_seconds(input_md, first_step, last_step)
 
