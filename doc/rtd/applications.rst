@@ -3513,7 +3513,7 @@ Command Line Arguments
 
 --save_mask
     save the geopotential height anomaly mask to the output file. This is mainly
-    useful for debugging purposes as the mask is not filtered by latidude range or
+    useful for debugging purposes as the mask is not filtered by latitude range or
     connected component area.
 
 --discard-unique-region-ids
@@ -3652,7 +3652,7 @@ This application takes as input the output of
 each time step. It analyzes the overlap between blobs in consecutive time steps
 and generates a tracking table that links regions across time based on a minimum
 overlap threshold. The tracking table serves as input to subsequent steps for
-assigning global track IDs as well as filtering by duration
+filtering by duration
 (`teca_blocking_event_tracker`) and relabeling local component IDs to global
 track IDs (`teca_blocking_event_relabel`).
 
@@ -3954,9 +3954,7 @@ Together with `teca_blocking_event_create_overlap_table` and
 Inputs
 ~~~~~~
 
-* NetCDF files with locally-labeled blocking event IDs (from
-`teca_blocking_event_detect_blobs` **without** the
-`--discard-unique-region-ids` option)
+* NetCDF files with locally-labeled blocking event IDs (from `teca_blocking_event_detect_blobs` **without** the `--discard-unique-region-ids` option)
 * A mapping pickle file (from `teca_blocking_event_tracker`)
 
 Outputs
