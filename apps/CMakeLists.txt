@@ -47,6 +47,7 @@ teca_add_app(teca_cartesian_mesh_diff LIBS ${teca_app_link}
     FEATURES ${TECA_HAS_NETCDF})
 
 teca_add_python_app(teca_numpy_array_diff)
+teca_add_python_app(teca_pickle_diff)
 
 teca_add_app(teca_cpp_temporal_reduction LIBS ${teca_app_link}
     FEATURES ${TECA_HAS_NETCDF})
@@ -87,3 +88,5 @@ if(TECA_HAS_PYTHON)
 endif()
 teca_add_python_app(teca_blocking_event_detect_blobs FEATURES ${TECA_HAS_NETCDF})
 teca_add_python_app(teca_blocking_event_create_overlap_table FEATURES ${TECA_HAS_NETCDF})
+teca_add_python_app(teca_blocking_event_tracker)
+teca_add_python_app(teca_blocking_event_relabel FEATURES ${TECA_HAS_NETCDF})

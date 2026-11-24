@@ -607,6 +607,14 @@ TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long long, unsigned_long_long)
     {
         return teca_metadata___getitem__(self, name);
     }
+    %pythoncode
+    {
+    def get(self, name, *default):
+        r""" dict-style get: return the default if the key is missing """
+        if not self.has(name) and default:
+            return default[0]
+        return self.__getitem__(name)
+    }
 
     PyObject *append(const std::string &name, PyObject *obj)
     {

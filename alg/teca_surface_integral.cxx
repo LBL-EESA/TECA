@@ -232,7 +232,7 @@ void integrate(data_t *cell_int, const data_t *sflux,
 
 // **************************************************************************
 template <typename data_t, typename mask_t, typename tuple_t = thrust::tuple<data_t, mask_t>>
-struct apply_mask : public thrust::unary_function<tuple_t, data_t>
+struct apply_mask
 {
     __host__ __device__ data_t operator()(const tuple_t & tup) const
     {
