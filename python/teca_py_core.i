@@ -602,9 +602,19 @@ TECA_PY_DYNAMIC_VARIANT_ARRAY_CAST(unsigned long long, unsigned_long_long)
         return nullptr;
     }
 
-    /* get a property */
-    PyObject *get_internal(const std::string &name)
+    /* get a property, with optional default (dict.get semantics) */
+    PyObject *get_internal(const std::string &name, PyObject *default_val = nullptr)
     {
+        if (!self->has(name))
+        {
+            if (default_val)
+            {
+               Py_INCREF(default_val);
+               return default_val;
+            }
+            TECA_PY_ERROR(PyExc_KeyError, "key \"" << name << "\" not found")
+            return nullptr;
+        }
         return teca_metadata___getitem__(self, name);
     }
 

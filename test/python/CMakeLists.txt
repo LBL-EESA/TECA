@@ -522,3 +522,6 @@ teca_add_test(py_normalize_coordinates_z_axis_units
     COMMAND ${PYTHON_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/test_normalize_coords_z_axis_units.py ${TECA_DATA_ROOT}
     REQ_TECA_DATA)
+
+teca_add_test(py_test_metadata_get
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_metadata_get.py)
